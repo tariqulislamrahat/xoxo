@@ -1,4 +1,4 @@
-![Advanced Tic Tac Toe](img/img.png)
+![Advanced Tic Tac Toe](img/xoxo.png)
 
 
 # XOXO
