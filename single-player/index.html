@@ -185,7 +185,7 @@
         let xMoves = [];
         let oMoves = [];
         let gameOver = false;
-
+    
         // Initialize Board
         function createBoard() {
             const boardElement = document.getElementById('board');
@@ -198,64 +198,63 @@
                 boardElement.appendChild(cell);
             }
         }
-
+    
         // Handle Cell Click
         function handleCellClick(index) {
             if (gameOver || board[index] !== '' || currentPlayer !== 'X') return;
-
             addMove(currentPlayer, index, () => {
                 const winner = checkWinner();
                 if (winner) {
                     endGame(winner);
                     return;
                 }
-
                 switchPlayer();
                 if (currentPlayer === 'O') {
                     setTimeout(bestAIMove, 500);
                 }
             });
         }
-
+    
         // Add Move to Board
         function addMove(player, index, callback) {
             const movesArray = player === 'X' ? xMoves : oMoves;
-
+    
+            console.log(`Adding move for player ${player} at index ${index}`);
+    
+            // If the player has reached the maximum number of moves, remove the oldest move
             if (movesArray.length === MAX_MOVES_PER_PLAYER) {
                 const oldestMove = movesArray.shift();
+                console.log(`Removing oldest move at index ${oldestMove}`);
                 const oldestCell = document.querySelector(`[data-index="${oldestMove}"]`);
                 oldestCell.classList.add('removing');
                 board[oldestMove] = '';
-                
                 setTimeout(() => {
-                    oldestCell.textContent = '';
-                    oldestCell.classList.remove('x', 'o', 'removing');
+                    oldestCell.textContent = '';  // Clear the text content
+                    oldestCell.classList.remove('x', 'o', 'removing');  // Remove classes
                 }, 1000);
-
-                movesArray.push(index);
-                board[index] = player;
-                const cell = document.querySelector(`[data-index="${index}"]`);
-                cell.textContent = player;
-                cell.classList.add(player.toLowerCase());
-
-                if (callback) callback();
-            } else {
-                movesArray.push(index);
-                board[index] = player;
-                const cell = document.querySelector(`[data-index="${index}"]`);
-                cell.textContent = player;
-                cell.classList.add(player.toLowerCase());
-
-                if (callback) callback();
             }
+    
+            // Add the new move to the board and update the DOM
+            movesArray.push(index);
+            board[index] = player;
+            const cell = document.querySelector(`[data-index="${index}"]`);
+    
+            console.log(`Selected cell:`, cell);
+    
+            // Ensure the text content and class are set correctly
+            cell.textContent = player;  // Set the text content to 'X' or 'O'
+            cell.classList.add(player.toLowerCase());  // Add the appropriate class ('x' or 'o')
+            cell.style.backgroundColor = '';  // Reset background color
+    
+            if (callback) callback();
         }
-
+    
         // Switch Player
         function switchPlayer() {
             currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-            document.getElementById('currentPlayer').textContent = currentPlayer;
+            document.getElementById('currentPlayer').textContent = `${currentPlayer}`;
         }
-
+    
         // Check for Winner
         function checkWinner() {
             const winPatterns = [
@@ -263,7 +262,6 @@
                 [0, 3, 6], [1, 4, 7], [2, 5, 8],
                 [0, 4, 8], [2, 4, 6]
             ];
-
             for (let pattern of winPatterns) {
                 const [a, b, c] = pattern;
                 if (board[a] && board[a] === board[b] && board[a] === board[c]) {
@@ -271,11 +269,10 @@
                     return board[a];
                 }
             }
-
             if (!board.includes('')) return 'draw';
             return null;
         }
-
+    
         // Highlight Winning Line
         function highlightWinningLine(pattern) {
             pattern.forEach(index => {
@@ -283,7 +280,7 @@
                 cell.style.backgroundColor = '#ffffff';
             });
         }
-
+    
         // End Game
         function endGame(winner) {
             gameOver = true;
@@ -296,7 +293,7 @@
             }
             winnerMessage.style.display = 'block';
         }
-
+    
         // Reset Game
         function resetGame() {
             board = Array(BOARD_SIZE).fill('');
@@ -304,18 +301,17 @@
             oMoves = [];
             currentPlayer = 'X';
             gameOver = false;
-            document.getElementById('currentPlayer').textContent = 'X';
+            document.getElementById('currentPlayer').textContent = "X's Turn";
             document.getElementById('winnerMessage').style.display = 'none';
             createBoard();
         }
-
+    
         // AI Logic (Minimax with Alpha-Beta Pruning)
         function minimax(board, depth, isMaximizing, alpha, beta) {
             const result = checkWinner();
             if (result === 'X') return -1;
             if (result === 'O') return 1;
             if (result === 'draw') return 0;
-
             if (isMaximizing) {
                 let bestScore = -Infinity;
                 for (let i = 0; i < board.length; i++) {
@@ -344,7 +340,7 @@
                 return bestScore;
             }
         }
-
+    
         // Best AI Move
         function bestAIMove() {
             let bestScore = -Infinity;
@@ -360,17 +356,17 @@
                     }
                 }
             }
+            console.log(`AI is making a move at index ${move}`);
             addMove('O', move, () => {
                 const winner = checkWinner();
                 if (winner) {
                     endGame(winner);
                     return;
                 }
-
                 switchPlayer();
             });
         }
-
+    
         // Initialize Game
         createBoard();
     </script>
