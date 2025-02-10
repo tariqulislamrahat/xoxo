@@ -181,177 +181,208 @@
     </div>
 
     <script>
-const BOARD_SIZE = 9;
-const MAX_MOVES_PER_PLAYER = 3;
-let currentPlayer = 'X';
-let board = Array(BOARD_SIZE).fill('');
-let xMoves = [];
-let oMoves = [];
-let gameOver = false;
-
-function createBoard() {
-    const boardElement = document.getElementById('board');
-    boardElement.innerHTML = '';
-    for (let i = 0; i < BOARD_SIZE; i++) {
-        const cell = document.createElement('div');
-        cell.classList.add('cell');
-        cell.setAttribute('data-index', i);
-        cell.addEventListener('click', () => handleCellClick(i));
-        boardElement.appendChild(cell);
-    }
-}
-
-function handleCellClick(index) {
-    if (gameOver || board[index] !== '' || currentPlayer !== 'X') return;
-    addMove(currentPlayer, index, () => {
-        const winner = checkWinner();
-        if (winner) {
-            endGame(winner);
-            return;
-        }
-        switchPlayer();
-        if (currentPlayer === 'O') {
-            setTimeout(bestAIMove, 500);
-        }
-    });
-}
-
-function addMove(player, index, callback) {
-    const movesArray = player === 'X' ? xMoves : oMoves;
-    if (movesArray.length === MAX_MOVES_PER_PLAYER) {
-        const oldestMove = movesArray.shift();
-        const oldestCell = document.querySelector(`[data-index="${oldestMove}"]`);
-        oldestCell.classList.add('removing');
-        board[oldestMove] = '';
-        setTimeout(() => {
-            oldestCell.textContent = '';
-            oldestCell.classList.remove('x', 'o', 'removing');
-            movesArray.push(index);
-            board[index] = player;
-            const cell = document.querySelector(`[data-index="${index}"]`);
-            cell.textContent = player;
-            cell.classList.add(player.toLowerCase());
-            cell.style.backgroundColor = '';
-            if (callback) callback();
-        }, 1000);
-    } else {
-        movesArray.push(index);
-        board[index] = player;
-        const cell = document.querySelector(`[data-index="${index}"]`);
-        cell.textContent = player;
-        cell.classList.add(player.toLowerCase());
-        cell.style.backgroundColor = '';
-        if (callback) callback();
-    }
-}
-
-function switchPlayer() {
-    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-    document.getElementById('currentPlayer').textContent = `${currentPlayer}`;
-}
-
-function checkWinner() {
-    const winPatterns = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],
-        [0, 4, 8], [2, 4, 6]
-    ];
-    for (let pattern of winPatterns) {
-        const [a, b, c] = pattern;
-        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-            highlightWinningLine(pattern);
-            return board[a];
-        }
-    }
-    if (!board.includes('')) return 'draw';
-    return null;
-}
-
-function highlightWinningLine(pattern) {
-    pattern.forEach(index => {
-        const cell = document.querySelector(`[data-index="${index}"]`);
-        cell.style.backgroundColor = '#ffffff';
-    });
-}
-
-function endGame(winner) {
-    gameOver = true;
-    const winnerMessage = document.getElementById('winnerMessage');
-    const winnerText = document.getElementById('winnerText');
-    if (winner === 'draw') {
-        winnerText.textContent = "It's a Draw!";
-    } else {
-        winnerText.textContent = `Player ${winner} Wins!`;
-    }
-    winnerMessage.style.display = 'block';
-}
-
-function resetGame() {
-    board = Array(BOARD_SIZE).fill('');
-    xMoves = [];
-    oMoves = [];
-    currentPlayer = 'X';
-    gameOver = false;
-    document.getElementById('currentPlayer').textContent = "X";
-    document.getElementById('winnerMessage').style.display = 'none';
-    createBoard();
-}
-
-// Enhanced Minimax Algorithm with Strategic Prioritization
-function minimax(board, depth, isMaximizing, alpha, beta) {
-    const winner = checkWinner();
-    if (winner === 'O') return 10 - depth; // AI wins
-    if (winner === 'X') return depth - 10; // Player wins
-    if (winner === 'draw') return 0; // Draw
-
-    if (isMaximizing) {
-        let maxEval = -Infinity;
-        const moveOrder = getStrategicMoveOrder(board); // Dynamic move ordering
-        for (let i of moveOrder) {
-            if (board[i] === '') {
-                board[i] = 'O'; // AI move
-                let eval = minimax(board, depth + 1, false, alpha, beta);
-                board[i] = ''; // Undo move
-                maxEval = Math.max(maxEval, eval);
-                alpha = Math.max(alpha, eval);
-                if (beta <= alpha) break; // Beta cutoff
+        const BOARD_SIZE = 9;
+        const MAX_MOVES_PER_PLAYER = 3;
+        let currentPlayer = 'X';
+        let board = Array(BOARD_SIZE).fill('');
+        let xMoves = [];
+        let oMoves = [];
+        let gameOver = false;
+        
+        function createBoard() {
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.setAttribute('data-index', i);
+                cell.addEventListener('click', () => handleCellClick(i));
+                boardElement.appendChild(cell);
             }
         }
-        return maxEval;
-    } else {
-        let minEval = Infinity;
-        const moveOrder = getStrategicMoveOrder(board); // Dynamic move ordering
-        for (let i of moveOrder) {
-            if (board[i] === '') {
-                board[i] = 'X'; // Player move
-                let eval = minimax(board, depth + 1, true, alpha, beta);
-                board[i] = ''; // Undo move
-                minEval = Math.min(minEval, eval);
-                beta = Math.min(beta, eval);
-                if (beta <= alpha) break; // Alpha cutoff
+        
+        function handleCellClick(index) {
+            if (gameOver || board[index] !== '' || currentPlayer !== 'X') return;
+            addMove(currentPlayer, index, () => {
+                const winner = checkWinner();
+                if (winner) {
+                    endGame(winner);
+                    return;
+                }
+                switchPlayer();
+                if (currentPlayer === 'O') {
+                    setTimeout(bestAIMove, 500);
+                }
+            });
+        }
+        
+        function addMove(player, index, callback) {
+            const movesArray = player === 'X' ? xMoves : oMoves;
+            if (movesArray.length === MAX_MOVES_PER_PLAYER) {
+                const oldestMove = movesArray.shift();
+                const oldestCell = document.querySelector(`[data-index="${oldestMove}"]`);
+                oldestCell.classList.add('removing');
+                board[oldestMove] = '';
+                
+                // Reduced delay from 1000ms to 300ms for smoother transitions
+                setTimeout(() => {
+                    oldestCell.textContent = '';
+                    oldestCell.classList.remove('x', 'o', 'removing');
+                    movesArray.push(index);
+                    board[index] = player;
+                    const cell = document.querySelector(`[data-index="${index}"]`);
+                    cell.textContent = player;
+                    cell.classList.add(player.toLowerCase());
+                    cell.style.backgroundColor = '';
+                    if (callback) callback();
+                }, 300); // Reduced delay to 300ms
+            } else {
+                movesArray.push(index);
+                board[index] = player;
+                const cell = document.querySelector(`[data-index="${index}"]`);
+                cell.textContent = player;
+                cell.classList.add(player.toLowerCase());
+                cell.style.backgroundColor = '';
+                if (callback) callback();
             }
         }
-        return minEval;
-    }
-}
-
-// Get Strategic Move Order: Center > Corners > Edges
-function getStrategicMoveOrder(board) {
-    const center = [4];
-    const corners = [0, 2, 6, 8];
-    const edges = [1, 3, 5, 7];
-    return [...center, ...corners, ...edges].filter(index => board[index] === '');
-}
-
-// Best AI Move with Tactical Enhancements
-function bestAIMove() {
-    let availableMoves = board.map((cell, index) => cell === '' ? index : null).filter(index => index !== null);
-
-    // Immediate Threat Detection: Block Opponent's Winning Move
-    for (let move of availableMoves) {
-        board[move] = 'X'; // Simulate opponent's move
-        if (checkWinner() === 'X') {
-            board[move] = ''; // Undo move
+        
+        function switchPlayer() {
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            document.getElementById('currentPlayer').textContent = `${currentPlayer}`;
+        }
+        
+        function checkWinner() {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+            for (let pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    highlightWinningLine(pattern);
+                    return board[a];
+                }
+            }
+            if (!board.includes('')) return 'draw';
+            return null;
+        }
+        
+        function highlightWinningLine(pattern) {
+            pattern.forEach(index => {
+                const cell = document.querySelector(`[data-index="${index}"]`);
+                cell.style.backgroundColor = '#ffffff';
+            });
+        }
+        
+        function endGame(winner) {
+            gameOver = true;
+            const winnerMessage = document.getElementById('winnerMessage');
+            const winnerText = document.getElementById('winnerText');
+            if (winner === 'draw') {
+                winnerText.textContent = "It's a Draw!";
+            } else {
+                winnerText.textContent = `Player ${winner} Wins!`;
+            }
+            winnerMessage.style.display = 'block';
+        }
+        
+        function resetGame() {
+            board = Array(BOARD_SIZE).fill('');
+            xMoves = [];
+            oMoves = [];
+            currentPlayer = 'X';
+            gameOver = false;
+            document.getElementById('currentPlayer').textContent = "X";
+            document.getElementById('winnerMessage').style.display = 'none';
+            createBoard();
+        }
+        
+        // Enhanced Minimax Algorithm with Strategic Prioritization
+        function minimax(board, depth, isMaximizing, alpha, beta) {
+            const winner = checkWinner();
+            if (winner === 'O') return 10 - depth; // AI wins
+            if (winner === 'X') return depth - 10; // Player wins
+            if (winner === 'draw') return 0; // Draw
+            if (isMaximizing) {
+                let maxEval = -Infinity;
+                const moveOrder = getStrategicMoveOrder(board); // Dynamic move ordering
+                for (let i of moveOrder) {
+                    if (board[i] === '') {
+                        board[i] = 'O'; // AI move
+                        let eval = minimax(board, depth + 1, false, alpha, beta);
+                        board[i] = ''; // Undo move
+                        maxEval = Math.max(maxEval, eval);
+                        alpha = Math.max(alpha, eval);
+                        if (beta <= alpha) break; // Beta cutoff
+                    }
+                }
+                return maxEval;
+            } else {
+                let minEval = Infinity;
+                const moveOrder = getStrategicMoveOrder(board); // Dynamic move ordering
+                for (let i of moveOrder) {
+                    if (board[i] === '') {
+                        board[i] = 'X'; // Player move
+                        let eval = minimax(board, depth + 1, true, alpha, beta);
+                        board[i] = ''; // Undo move
+                        minEval = Math.min(minEval, eval);
+                        beta = Math.min(beta, eval);
+                        if (beta <= alpha) break; // Alpha cutoff
+                    }
+                }
+                return minEval;
+            }
+        }
+        
+        // Get Strategic Move Order: Center > Corners > Edges
+        function getStrategicMoveOrder(board) {
+            const center = [4];
+            const corners = [0, 2, 6, 8];
+            const edges = [1, 3, 5, 7];
+            return [...center, ...corners, ...edges].filter(index => board[index] === '');
+        }
+        
+        // Best AI Move with Tactical Enhancements
+        function bestAIMove() {
+            let availableMoves = board.map((cell, index) => cell === '' ? index : null).filter(index => index !== null);
+            // Immediate Threat Detection: Block Opponent's Winning Move
+            for (let move of availableMoves) {
+                board[move] = 'X'; // Simulate opponent's move
+                if (checkWinner() === 'X') {
+                    board[move] = ''; // Undo move
+                    addMove('O', move, () => {
+                        const winner = checkWinner();
+                        if (winner) {
+                            endGame(winner);
+                            return;
+                        }
+                        switchPlayer();
+                    });
+                    return;
+                }
+                board[move] = ''; // Undo move
+            }
+            // Use Minimax with Strategic Move Ordering
+            let bestScore = -Infinity;
+            let bestMoves = [];
+            const moveOrder = getStrategicMoveOrder(board); // Dynamic move ordering
+            for (let i of moveOrder) {
+                if (board[i] === '') {
+                    board[i] = 'O';
+                    let score = minimax(board, 0, false, -Infinity, Infinity);
+                    board[i] = '';
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMoves = [i]; // Reset best moves
+                    } else if (score === bestScore) {
+                        bestMoves.push(i); // Add to best moves
+                    }
+                }
+            }
+            // Choose a move from the best moves (weighted selection)
+            const move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
             addMove('O', move, () => {
                 const winner = checkWinner();
                 if (winner) {
@@ -360,43 +391,10 @@ function bestAIMove() {
                 }
                 switchPlayer();
             });
-            return;
         }
-        board[move] = ''; // Undo move
-    }
-
-    // Use Minimax with Strategic Move Ordering
-    let bestScore = -Infinity;
-    let bestMoves = [];
-    const moveOrder = getStrategicMoveOrder(board); // Dynamic move ordering
-    for (let i of moveOrder) {
-        if (board[i] === '') {
-            board[i] = 'O';
-            let score = minimax(board, 0, false, -Infinity, Infinity);
-            board[i] = '';
-            if (score > bestScore) {
-                bestScore = score;
-                bestMoves = [i]; // Reset best moves
-            } else if (score === bestScore) {
-                bestMoves.push(i); // Add to best moves
-            }
-        }
-    }
-
-    // Choose a move from the best moves (weighted selection)
-    const move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
-    addMove('O', move, () => {
-        const winner = checkWinner();
-        if (winner) {
-            endGame(winner);
-            return;
-        }
-        switchPlayer();
-    });
-}
-
-// Initialize Game
-createBoard();
-    </script>
+        
+        // Initialize Game
+        createBoard();
+        </script>
 </body>
 </html>
