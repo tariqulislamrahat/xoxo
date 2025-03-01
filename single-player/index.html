@@ -51,6 +51,7 @@
             box-shadow: 0 15px 25px rgba(0, 0, 0, 0.5);
             width: 90%;
             max-width: 400px;
+            box-sizing: border-box;
         }
         .player-turn {
             font-size: 1.8rem;
@@ -65,6 +66,9 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             grid-gap: 10px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
         }
         .cell {
             width: 100%;
@@ -79,6 +83,7 @@
             transition: all 0.3s ease;
             border-radius: 10px;
             animation: popIn 0.3s ease;
+            box-sizing: border-box;
         }
         @keyframes popIn {
             from { transform: scale(0); }
