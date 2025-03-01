@@ -1,5 +1,4 @@
 <!-- BY: Tariqul Islam (V2) -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -173,7 +172,71 @@
         <h2 id="winnerText"></h2>
     </div>
 
+    <!-- Include devtools-detect library -->
+    <script src="https://cdn.jsdelivr.net/npm/devtools-detect/index.js"></script>
+
     <script>
+        // Redirect function
+        function redirectIfDevToolsDetected() {
+            window.location.href = 'https://tariqulislamrahat.github.io/xoxo/';
+        }
+
+        // 1. Disable right-click context menu and redirect
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            redirectIfDevToolsDetected();
+        });
+
+        // 2. Disable common developer tools and view source shortcuts and redirect
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J')) || 
+                (e.ctrlKey && e.key === 'u')) {
+                e.preventDefault();
+                redirectIfDevToolsDetected();
+            }
+        });
+
+        // 3. DevTools detection using devtools-detect library (Browser-Specific Technique)
+        if (window.devtools && window.devtools.isOpen) {
+            redirectIfDevToolsDetected();
+        }
+        window.addEventListener('devtoolschange', function (e) {
+            if (e.detail.isOpen) {
+                redirectIfDevToolsDetected();
+            }
+        });
+
+        // 4. Window size change detection
+        window.addEventListener('resize', function () {
+            if (screen.width - window.innerWidth > 200 || screen.height - window.innerHeight > 200) {
+                redirectIfDevToolsDetected();
+            }
+        });
+
+        // 5. Console object detection
+        function checkConsole() {
+            const start = performance.now();
+            console.log('Checking console timing');
+            const end = performance.now();
+            if (end - start > 50) { // Threshold in milliseconds
+                redirectIfDevToolsDetected();
+            }
+        }
+        setInterval(checkConsole, 1000); // Check every 1 second
+
+        // 6. Debugger statement detection
+        function checkDebugger() {
+            const start = performance.now();
+            debugger; // Pauses if DevTools is open with breakpoints enabled
+            const end = performance.now();
+            if (end - start > 100) { // Threshold in milliseconds
+                redirectIfDevToolsDetected();
+            }
+        }
+        setInterval(checkDebugger, 1000); // Check every 1 second
+
+        // Original game logic
         const BOARD_SIZE = 9;
         const MAX_MOVES_PER_PLAYER = 3;
         const MAX_DEPTH = 10;
@@ -340,7 +403,6 @@
         function evaluate(board, xMoves, oMoves) {
             let score = 0;
 
-            // Calculate freshness for 'O' and 'X' moves
             const oFreshness = {};
             if (oMoves.length > 0) {
                 const n = oMoves.length;
@@ -362,7 +424,6 @@
                 [0, 4, 8], [2, 4, 6]
             ];
 
-            // Evaluate winning patterns
             for (let pattern of winPatterns) {
                 const cells = pattern.map(i => board[i]);
                 const oCount = cells.filter(cell => cell === 'O').length;
@@ -373,25 +434,24 @@
                     if (oCount === 2 && emptyCount === 1) {
                         const oIndices = pattern.filter(i => board[i] === 'O');
                         const freshSum = oFreshness[oIndices[0]] + oFreshness[oIndices[1]];
-                        score += freshSum * 50; // Strong incentive for potential 'O' win
+                        score += freshSum * 50;
                     } else if (oCount === 1 && emptyCount === 2) {
                         const oIndex = pattern.find(i => board[i] === 'O');
-                        score += oFreshness[oIndex] * 5; // Encourage potential lines
+                        score += oFreshness[oIndex] * 5;
                     }
                 }
                 if (oCount === 0 && xCount > 0) {
                     if (xCount === 2 && emptyCount === 1) {
                         const xIndices = pattern.filter(i => board[i] === 'X');
                         const freshSum = xFreshness[xIndices[0]] + xFreshness[xIndices[1]];
-                        score -= freshSum * 50; // Strong penalty to block 'X' win
+                        score -= freshSum * 50;
                     } else if (xCount === 1 && emptyCount === 2) {
                         const xIndex = pattern.find(i => board[i] === 'X');
-                        score -= xFreshness[xIndex] * 5; // Discourage 'X' potential
+                        score -= xFreshness[xIndex] * 5;
                     }
                 }
             }
 
-            // Control of center and corners
             const center = 4;
             const corners = [0, 2, 6, 8];
             if (board[center] === 'O') score += 10;
@@ -401,7 +461,6 @@
                 if (board[corner] === 'X') score -= 5;
             }
 
-            // Open lines
             let oOpenLines = 0;
             let xOpenLines = 0;
             for (let pattern of winPatterns) {
@@ -417,8 +476,8 @@
 
         function minimax(board, xMoves, oMoves, depth, isMaximizing, alpha, beta) {
             const winner = checkWinner();
-            if (winner === 'O') return 10000 - depth; // High score for 'O' win
-            if (winner === 'X') return -10000 + depth; // Low score for 'X' win
+            if (winner === 'O') return 10000 - depth;
+            if (winner === 'X') return -10000 + depth;
             if (depth >= MAX_DEPTH) return evaluate(board, xMoves, oMoves);
 
             if (isMaximizing) {
@@ -463,7 +522,6 @@
         function bestAIMove() {
             let availableMoves = board.map((cell, index) => cell === '' ? index : null).filter(index => index !== null);
 
-            // Check for immediate win
             for (let move of availableMoves) {
                 board[move] = 'O';
                 if (checkWinner() === 'O') {
@@ -478,7 +536,6 @@
                 board[move] = '';
             }
 
-            // Check for immediate block
             for (let move of availableMoves) {
                 board[move] = 'X';
                 if (checkWinner() === 'X') {
@@ -493,7 +550,6 @@
                 board[move] = '';
             }
 
-            // Use minimax to find the best move
             let bestScore = -Infinity;
             let bestMoves = [];
             for (let move of availableMoves) {
