@@ -1,4 +1,4 @@
-<!-- BY: Tariqul Islam (V2)-->
+<!-- BY: Tariqul Islam (V2) -->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -171,7 +171,7 @@
     <script>
         const BOARD_SIZE = 9;
         const MAX_MOVES_PER_PLAYER = 3;
-        const MAX_DEPTH = 6;
+        const MAX_DEPTH = 10;
         let currentPlayer = 'X';
         let board = Array(BOARD_SIZE).fill('');
         let xMoves = [];
@@ -196,7 +196,7 @@
 
         function startTimer() {
             startTime = Date.now();
-            updateTimerDisplay(0); // Show 00:00:000 immediately
+            updateTimerDisplay(0);
             timerInterval = setInterval(updateTimer, 10);
         }
 
@@ -295,7 +295,7 @@
                     return board[a];
                 }
             }
-            return null; // No draw check since moves are removed
+            return null;
         }
 
         function endGame(winner) {
@@ -332,10 +332,88 @@
             createBoard();
         }
 
+        function evaluate(board, xMoves, oMoves) {
+            let score = 0;
+
+            // Calculate freshness for 'O' and 'X' moves
+            const oFreshness = {};
+            if (oMoves.length > 0) {
+                const n = oMoves.length;
+                for (let i = 0; i < n; i++) {
+                    oFreshness[oMoves[i]] = (i + 1) / n;
+                }
+            }
+            const xFreshness = {};
+            if (xMoves.length > 0) {
+                const n = xMoves.length;
+                for (let i = 0; i < n; i++) {
+                    xFreshness[xMoves[i]] = (i + 1) / n;
+                }
+            }
+
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+
+            // Evaluate winning patterns
+            for (let pattern of winPatterns) {
+                const cells = pattern.map(i => board[i]);
+                const oCount = cells.filter(cell => cell === 'O').length;
+                const xCount = cells.filter(cell => cell === 'X').length;
+                const emptyCount = cells.filter(cell => cell === '').length;
+
+                if (xCount === 0 && oCount > 0) {
+                    if (oCount === 2 && emptyCount === 1) {
+                        const oIndices = pattern.filter(i => board[i] === 'O');
+                        const freshSum = oFreshness[oIndices[0]] + oFreshness[oIndices[1]];
+                        score += freshSum * 50; // Strong incentive for potential 'O' win
+                    } else if (oCount === 1 && emptyCount === 2) {
+                        const oIndex = pattern.find(i => board[i] === 'O');
+                        score += oFreshness[oIndex] * 5; // Encourage potential lines
+                    }
+                }
+                if (oCount === 0 && xCount > 0) {
+                    if (xCount === 2 && emptyCount === 1) {
+                        const xIndices = pattern.filter(i => board[i] === 'X');
+                        const freshSum = xFreshness[xIndices[0]] + xFreshness[xIndices[1]];
+                        score -= freshSum * 50; // Strong penalty to block 'X' win
+                    } else if (xCount === 1 && emptyCount === 2) {
+                        const xIndex = pattern.find(i => board[i] === 'X');
+                        score -= xFreshness[xIndex] * 5; // Discourage 'X' potential
+                    }
+                }
+            }
+
+            // Control of center and corners
+            const center = 4;
+            const corners = [0, 2, 6, 8];
+            if (board[center] === 'O') score += 10;
+            if (board[center] === 'X') score -= 10;
+            for (let corner of corners) {
+                if (board[corner] === 'O') score += 5;
+                if (board[corner] === 'X') score -= 5;
+            }
+
+            // Open lines
+            let oOpenLines = 0;
+            let xOpenLines = 0;
+            for (let pattern of winPatterns) {
+                const cells = pattern.map(i => board[i]);
+                if (!cells.includes('X')) oOpenLines++;
+                if (!cells.includes('O')) xOpenLines++;
+            }
+            score += oOpenLines * 5;
+            score -= xOpenLines * 5;
+
+            return score;
+        }
+
         function minimax(board, xMoves, oMoves, depth, isMaximizing, alpha, beta) {
             const winner = checkWinner();
-            if (winner === 'O') return 100 - depth;
-            if (winner === 'X') return depth - 100;
+            if (winner === 'O') return 10000 - depth; // High score for 'O' win
+            if (winner === 'X') return -10000 + depth; // Low score for 'X' win
             if (depth >= MAX_DEPTH) return evaluate(board, xMoves, oMoves);
 
             if (isMaximizing) {
@@ -377,74 +455,10 @@
             }
         }
 
-        function evaluate(board, xMoves, oMoves) {
-            let score = 0;
-
-            const oFreshness = {};
-            if (oMoves.length > 0) {
-                const n = oMoves.length;
-                for (let i = 0; i < n; i++) {
-                    oFreshness[oMoves[i]] = (i + 1) / n;
-                }
-            }
-            const xFreshness = {};
-            if (xMoves.length > 0) {
-                const n = xMoves.length;
-                for (let i = 0; i < n; i++) {
-                    xFreshness[xMoves[i]] = (i + 1) / n;
-                }
-            }
-
-            const winPatterns = [
-                [0, 1, 2], [3, 4, 5], [6, 7, 8],
-                [0, 3, 6], [1, 4, 7], [2, 5, 8],
-                [0, 4, 8], [2, 4, 6]
-            ];
-
-            for (let pattern of winPatterns) {
-                const cells = pattern.map(i => board[i]);
-                const oCount = cells.filter(cell => cell === 'O').length;
-                const xCount = cells.filter(cell => cell === 'X').length;
-                const emptyCount = cells.filter(cell => cell === '').length;
-
-                if (xCount === 0 && oCount > 0) {
-                    if (oCount === 2 && emptyCount === 1) {
-                        const oIndices = pattern.filter(i => board[i] === 'O');
-                        const freshSum = oFreshness[oIndices[0]] + oFreshness[oIndices[1]];
-                        score += freshSum * 10;
-                    } else if (oCount === 1 && emptyCount === 2) {
-                        const oIndex = pattern.find(i => board[i] === 'O');
-                        score += oFreshness[oIndex] * 1;
-                    }
-                }
-                if (oCount === 0 && xCount > 0) {
-                    if (xCount === 2 && emptyCount === 1) {
-                        const xIndices = pattern.filter(i => board[i] === 'X');
-                        const freshSum = xFreshness[xIndices[0]] + xFreshness[xIndices[1]];
-                        score -= freshSum * 10;
-                    } else if (xCount === 1 && emptyCount === 2) {
-                        const xIndex = pattern.find(i => board[i] === 'X');
-                        score -= xFreshness[xIndex] * 1;
-                    }
-                }
-            }
-
-            // Strategic position bonuses
-            const center = 4;
-            const corners = [0, 2, 6, 8];
-            if (board[center] === 'O') score += 3;
-            if (board[center] === 'X') score -= 3;
-            for (let corner of corners) {
-                if (board[corner] === 'O') score += 2;
-                if (board[corner] === 'X') score -= 2;
-            }
-
-            return score;
-        }
-
         function bestAIMove() {
             let availableMoves = board.map((cell, index) => cell === '' ? index : null).filter(index => index !== null);
 
+            // Check for immediate win
             for (let move of availableMoves) {
                 board[move] = 'O';
                 if (checkWinner() === 'O') {
@@ -459,6 +473,7 @@
                 board[move] = '';
             }
 
+            // Check for immediate block
             for (let move of availableMoves) {
                 board[move] = 'X';
                 if (checkWinner() === 'X') {
@@ -473,6 +488,7 @@
                 board[move] = '';
             }
 
+            // Use minimax to find the best move
             let bestScore = -Infinity;
             let bestMoves = [];
             for (let move of availableMoves) {
