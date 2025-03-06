@@ -1,5 +1,4 @@
-<!-- BY: Tariqul Islam (V2) -->
-
+<!-- BY: Tariqul Islam (V3) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +7,6 @@
     <title>XOXO</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
-        
         body {
             display: flex;
             flex-direction: column;
@@ -172,413 +170,511 @@
     <div id="winnerMessage" class="winner-message">
         <h2 id="winnerText"></h2>
     </div>
-
-    <!-- Include devtools-detect library -->
-    <script src="https://cdn.jsdelivr.net/npm/devtools-detect/index.js"></script>
-
-    <script>
-        // Redirect function
-        function redirectIfDevToolsDetected() {
-            window.location.href = 'https://tariqulislamrahat.github.io/xoxo/';
-        }
-
-        // 1. Disable right-click context menu and redirect
-        document.addEventListener('contextmenu', function(e) {
+ 
+<script src="https://cdn.jsdelivr.net/npm/devtools-detect/index.js"></script>
+<script>
+    // Anti-cheat measures (unchanged)
+    function redirectIfDevToolsDetected() {
+        window.location.href = 'https://tariqulislamrahat.github.io/xoxo/';
+    }
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        redirectIfDevToolsDetected();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J')) || (e.ctrlKey && e.key === 'u')) {
             e.preventDefault();
             redirectIfDevToolsDetected();
-        });
-
-        // 2. Disable common developer tools and view source shortcuts and redirect
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'F12' || 
-                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J')) || 
-                (e.ctrlKey && e.key === 'u')) {
-                e.preventDefault();
-                redirectIfDevToolsDetected();
-            }
-        });
-
-        // 3. DevTools detection using devtools-detect library (Browser-Specific Technique)
-        if (window.devtools && window.devtools.isOpen) {
+        }
+    });
+    if (window.devtools && window.devtools.isOpen) {
+        redirectIfDevToolsDetected();
+    }
+    window.addEventListener('devtoolschange', function (e) {
+        if (e.detail.isOpen) {
             redirectIfDevToolsDetected();
         }
-        window.addEventListener('devtoolschange', function (e) {
-            if (e.detail.isOpen) {
-                redirectIfDevToolsDetected();
+    });
+    window.addEventListener('resize', function () {
+        if (screen.width - window.innerWidth > 200 || screen.height - window.innerHeight > 200) {
+            redirectIfDevToolsDetected();
+        }
+    });
+    function checkConsole() {
+        const start = performance.now();
+        console.log('Checking console timing');
+        const end = performance.now();
+        if (end - start > 50) {
+            redirectIfDevToolsDetected();
+        }
+    }
+    setInterval(checkConsole, 1000);
+    function checkDebugger() {
+        const start = performance.now();
+        debugger;
+        const end = performance.now();
+        if (end - start > 100) {
+            redirectIfDevToolsDetected();
+        }
+    }
+    setInterval(checkDebugger, 1000);
+
+    // Game logic
+    const BOARD_SIZE = 9;
+    const MAX_MOVES_PER_PLAYER = 3;
+    const MAX_DEPTH = 6; // Sufficient depth given move constraints
+    let currentPlayer = 'X';
+    let board = Array(BOARD_SIZE).fill('');
+    let xMoves = [];
+    let oMoves = [];
+    let gameOver = false;
+    let startTime = 0;
+    let timerInterval = null;
+    let bestTime = null;
+    let bestPlayer = null;
+
+    const winPatterns = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+        [0, 4, 8], [2, 4, 6] // diagonals
+    ];
+
+    // Define multiple AI strategies with varying weights
+    const strategies = [
+        { centerWeight: 20, cornerWeight: 15, forkWeight: 200, openLineWeight: 10 }, // Balanced strategy
+        { centerWeight: 25, cornerWeight: 10, forkWeight: 150, openLineWeight: 15 }, // Center-focused
+        { centerWeight: 15, cornerWeight: 20, forkWeight: 180, openLineWeight: 12 }  // Corner-focused
+    ];
+    let currentStrategy = strategies[Math.floor(Math.random() * strategies.length)];
+
+    function createBoard() {
+        const boardElement = document.getElementById('board');
+        boardElement.innerHTML = '';
+        for (let i = 0; i < BOARD_SIZE; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.setAttribute('data-index', i);
+            cell.addEventListener('click', () => handleCellClick(i));
+            boardElement.appendChild(cell);
+        }
+    }
+
+    function startTimer() {
+        startTime = Date.now();
+        updateTimerDisplay(0);
+        timerInterval = setInterval(updateTimer, 10);
+    }
+
+    function stopTimer() {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        const elapsedTime = Date.now() - startTime;
+        updateTimerDisplay(elapsedTime);
+    }
+
+    function updateTimer() {
+        if (gameOver) return;
+        const elapsedTime = Date.now() - startTime;
+        updateTimerDisplay(elapsedTime);
+    }
+
+    function updateTimerDisplay(elapsedTime) {
+        document.getElementById('timer').textContent = formatTime(elapsedTime);
+    }
+
+    function formatTime(elapsedTime, label = '') {
+        const milliseconds = Math.floor(elapsedTime % 1000);
+        const seconds = Math.floor((elapsedTime / 1000) % 60);
+        const minutes = Math.floor((elapsedTime / (1000 * 60)) % 60);
+        const timeString = `${padZero(minutes)}:${padZero(seconds)}:${padZero(milliseconds, 3)}`;
+        if (label) {
+            const playerSpan = `<span class="best-player">${bestPlayer}</span>`;
+            return `Best by "${playerSpan}" | ${timeString}`;
+        }
+        return timeString;
+    }
+
+    function padZero(num, length = 2) {
+        return num.toString().padStart(length, '0');
+    }
+
+    function handleCellClick(index) {
+        if (gameOver || board[index] !== '' || currentPlayer !== 'X') return;
+        if (startTime === 0) startTimer();
+        addMove(currentPlayer, index, () => {
+            const winner = checkWinner();
+            if (winner) {
+                endGame(winner);
+                return;
+            }
+            switchPlayer();
+            if (currentPlayer === 'O') {
+                setTimeout(bestAIMove, 500);
             }
         });
+    }
 
-        // 4. Window size change detection
-        window.addEventListener('resize', function () {
-            if (screen.width - window.innerWidth > 200 || screen.height - window.innerHeight > 200) {
-                redirectIfDevToolsDetected();
-            }
-        });
-
-        // 5. Console object detection
-        function checkConsole() {
-            const start = performance.now();
-            console.log('Checking console timing');
-            const end = performance.now();
-            if (end - start > 50) { // Threshold in milliseconds
-                redirectIfDevToolsDetected();
-            }
-        }
-        setInterval(checkConsole, 1000); // Check every 1 second
-
-        // 6. Debugger statement detection
-        function checkDebugger() {
-            const start = performance.now();
-            debugger; // Pauses if DevTools is open with breakpoints enabled
-            const end = performance.now();
-            if (end - start > 100) { // Threshold in milliseconds
-                redirectIfDevToolsDetected();
-            }
-        }
-        setInterval(checkDebugger, 1000); // Check every 1 second
-
-        // Original game logic
-        const BOARD_SIZE = 9;
-        const MAX_MOVES_PER_PLAYER = 3;
-        const MAX_DEPTH = 10;
-        let currentPlayer = 'X';
-        let board = Array(BOARD_SIZE).fill('');
-        let xMoves = [];
-        let oMoves = [];
-        let gameOver = false;
-        let startTime = 0;
-        let timerInterval = null;
-        let bestTime = null;
-        let bestPlayer = null;
-
-        function createBoard() {
-            const boardElement = document.getElementById('board');
-            boardElement.innerHTML = '';
-            for (let i = 0; i < BOARD_SIZE; i++) {
-                const cell = document.createElement('div');
-                cell.classList.add('cell');
-                cell.setAttribute('data-index', i);
-                cell.addEventListener('click', () => handleCellClick(i));
-                boardElement.appendChild(cell);
-            }
-        }
-
-        function startTimer() {
-            startTime = Date.now();
-            updateTimerDisplay(0);
-            timerInterval = setInterval(updateTimer, 10);
-        }
-
-        function stopTimer() {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            const elapsedTime = Date.now() - startTime;
-            updateTimerDisplay(elapsedTime);
-        }
-
-        function updateTimer() {
-            if (gameOver) return;
-            const elapsedTime = Date.now() - startTime;
-            updateTimerDisplay(elapsedTime);
-        }
-
-        function updateTimerDisplay(elapsedTime) {
-            document.getElementById('timer').textContent = formatTime(elapsedTime);
-        }
-
-        function formatTime(elapsedTime, label = '') {
-            const milliseconds = Math.floor(elapsedTime % 1000);
-            const seconds = Math.floor((elapsedTime / 1000) % 60);
-            const minutes = Math.floor((elapsedTime / (1000 * 60)) % 60);
-            const timeString = `${padZero(minutes)}:${padZero(seconds)}:${padZero(milliseconds, 3)}`;
-            if (label) {
-                const playerSpan = `<span class="best-player">${bestPlayer}</span>`;
-                return `Best by "${playerSpan}" | ${timeString}`;
-            }
-            return timeString;
-        }
-
-        function padZero(num, length = 2) {
-            return num.toString().padStart(length, '0');
-        }
-
-        function handleCellClick(index) {
-            if (gameOver || board[index] !== '' || currentPlayer !== 'X') return;
-            if (startTime === 0) startTimer();
-            addMove(currentPlayer, index, () => {
-                const winner = checkWinner();
-                if (winner) {
-                    endGame(winner);
-                    return;
-                }
-                switchPlayer();
-                if (currentPlayer === 'O') {
-                    setTimeout(bestAIMove, 500);
-                }
-            });
-        }
-
-        function addMove(player, index, callback) {
-            const movesArray = player === 'X' ? xMoves : oMoves;
-            if (movesArray.length === MAX_MOVES_PER_PLAYER) {
-                const oldestMove = movesArray[0];
-                const oldestCell = document.querySelector(`[data-index="${oldestMove}"]`);
-                oldestCell.classList.add('flash');
-                setTimeout(() => {
-                    oldestCell.classList.remove('flash');
-                    movesArray.shift();
-                    board[oldestMove] = '';
-                    oldestCell.textContent = '';
-                    oldestCell.classList.remove('x', 'o');
-                    movesArray.push(index);
-                    board[index] = player;
-                    const cell = document.querySelector(`[data-index="${index}"]`);
-                    cell.textContent = player;
-                    cell.classList.add(player.toLowerCase());
-                    if (callback) callback();
-                }, 500);
-            } else {
+    function addMove(player, index, callback) {
+        const movesArray = player === 'X' ? xMoves : oMoves;
+        if (movesArray.length === MAX_MOVES_PER_PLAYER) {
+            const oldestMove = movesArray[0];
+            const oldestCell = document.querySelector(`[data-index="${oldestMove}"]`);
+            oldestCell.classList.add('flash');
+            setTimeout(() => {
+                oldestCell.classList.remove('flash');
+                movesArray.shift();
+                board[oldestMove] = '';
+                oldestCell.textContent = '';
+                oldestCell.classList.remove('x', 'o');
                 movesArray.push(index);
                 board[index] = player;
                 const cell = document.querySelector(`[data-index="${index}"]`);
                 cell.textContent = player;
                 cell.classList.add(player.toLowerCase());
                 if (callback) callback();
+            }, 500);
+        } else {
+            movesArray.push(index);
+            board[index] = player;
+            const cell = document.querySelector(`[data-index="${index}"]`);
+            cell.textContent = player;
+            cell.classList.add(player.toLowerCase());
+            if (callback) callback();
+        }
+    }
+
+    function switchPlayer() {
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        document.getElementById('currentPlayer').textContent = currentPlayer;
+    }
+
+    function checkWinner() {
+        for (let pattern of winPatterns) {
+            const [a, b, c] = pattern;
+            if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                return board[a];
             }
         }
+        return null;
+    }
 
-        function switchPlayer() {
-            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-            document.getElementById('currentPlayer').textContent = currentPlayer;
+    function endGame(winner) {
+        gameOver = true;
+        stopTimer();
+        const winnerMessage = document.getElementById('winnerMessage');
+        const winnerText = document.getElementById('winnerText');
+        if (winner) {
+            winnerText.textContent = `Player ${winner} Wins!`;
+            const elapsedTime = Date.now() - startTime;
+            if (bestTime === null || elapsedTime < bestTime) {
+                bestTime = elapsedTime;
+                bestPlayer = winner;
+                document.getElementById('bestTime').innerHTML = formatTime(bestTime, 'Best by ');
+            }
+        } else {
+            winnerText.textContent = "It's a Draw!";
         }
+        winnerMessage.style.display = 'block';
+    }
 
-        function checkWinner() {
-            const winPatterns = [
-                [0, 1, 2], [3, 4, 5], [6, 7, 8],
-                [0, 3, 6], [1, 4, 7], [2, 5, 8],
-                [0, 4, 8], [2, 4, 6]
-            ];
+    function resetGame() {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        board = Array(BOARD_SIZE).fill('');
+        xMoves = [];
+        oMoves = [];
+        currentPlayer = 'X';
+        gameOver = false;
+        startTime = 0;
+        document.getElementById('currentPlayer').textContent = "X";
+        document.getElementById('winnerMessage').style.display = 'none';
+        document.getElementById('timer').textContent = '00:00:00';
+        createBoard();
+        // Select a new random strategy for each game
+        currentStrategy = strategies[Math.floor(Math.random() * strategies.length)];
+    }
+
+    function countForkOpportunities(player, board, moves) {
+        let forkCount = 0;
+        const emptyCells = board.map((cell, index) => cell === '' ? index : null).filter(index => index !== null);
+        for (let cell of emptyCells) {
+            const tempBoard = [...board];
+            const tempMoves = [...moves, cell];
+            tempBoard[cell] = player;
+            if (tempMoves.length > 3) {
+                const removed = tempMoves.shift();
+                tempBoard[removed] = '';
+            }
+            let threatCount = 0;
             for (let pattern of winPatterns) {
                 const [a, b, c] = pattern;
-                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                    return board[a];
+                const patternCells = [tempBoard[a], tempBoard[b], tempBoard[c]];
+                const playerCount = patternCells.filter(cell => cell === player).length;
+                const emptyCount = patternCells.filter(cell => cell === '').length;
+                if (playerCount === 2 && emptyCount === 1) {
+                    threatCount++;
                 }
             }
-            return null;
+            if (threatCount >= 2) {
+                forkCount++;
+            }
+        }
+        return forkCount;
+    }
+
+    function evaluate(board, xMoves, oMoves) {
+        let score = 0;
+
+        // Freshness calculations
+        const oFreshness = {};
+        if (oMoves.length > 0) {
+            const n = oMoves.length;
+            for (let i = 0; i < n; i++) {
+                oFreshness[oMoves[i]] = (i + 1) / n;
+            }
+        }
+        const xFreshness = {};
+        if (xMoves.length > 0) {
+            const n = xMoves.length;
+            for (let i = 0; i < n; i++) {
+                xFreshness[xMoves[i]] = (i + 1) / n;
+            }
         }
 
-        function endGame(winner) {
-            gameOver = true;
-            stopTimer();
-            const winnerMessage = document.getElementById('winnerMessage');
-            const winnerText = document.getElementById('winnerText');
-            if (winner) {
-                winnerText.textContent = `Player ${winner} Wins!`;
-                const elapsedTime = Date.now() - startTime;
-                if (bestTime === null || elapsedTime < bestTime) {
-                    bestTime = elapsedTime;
-                    bestPlayer = winner;
-                    document.getElementById('bestTime').innerHTML = formatTime(bestTime, 'Best by ');
+        // Evaluate winning patterns
+        for (let pattern of winPatterns) {
+            const cells = pattern.map(i => board[i]);
+            const oCount = cells.filter(cell => cell === 'O').length;
+            const xCount = cells.filter(cell => cell === 'X').length;
+            const emptyCount = cells.filter(cell => cell === '').length;
+
+            if (xCount === 0 && oCount > 0) {
+                if (oCount === 2 && emptyCount === 1) {
+                    const oIndices = pattern.filter(i => board[i] === 'O');
+                    const avgFreshness = (oFreshness[oIndices[0]] + oFreshness[oIndices[1]]) / 2;
+                    score += 100 * avgFreshness;
+                } else if (oCount === 1 && emptyCount === 2) {
+                    const oIndex = pattern.find(i => board[i] === 'O');
+                    score += 10 * oFreshness[oIndex];
                 }
-            } else {
-                winnerText.textContent = "It's a Draw!";
             }
-            winnerMessage.style.display = 'block';
+
+            if (oCount === 0 && xCount > 0) {
+                if (xCount === 2 && emptyCount === 1) {
+                    const xIndices = pattern.filter(i => board[i] === 'X');
+                    const avgFreshness = (xFreshness[xIndices[0]] + xFreshness[xIndices[1]]) / 2;
+                    score -= 100 * avgFreshness;
+                } else if (xCount === 1 && emptyCount === 2) {
+                    const xIndex = pattern.find(i => board[i] === 'X');
+                    score -= 10 * xFreshness[xIndex];
+                }
+            }
         }
 
-        function resetGame() {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            board = Array(BOARD_SIZE).fill('');
-            xMoves = [];
-            oMoves = [];
-            currentPlayer = 'X';
-            gameOver = false;
-            startTime = 0;
-            document.getElementById('currentPlayer').textContent = "X";
-            document.getElementById('winnerMessage').style.display = 'none';
-            document.getElementById('timer').textContent = '00:00:00';
-            createBoard();
+        // Center and corners using strategy-specific weights
+        const center = 4;
+        if (board[center] === 'O' && oMoves.includes(center)) {
+            score += currentStrategy.centerWeight * oFreshness[center];
+        } else if (board[center] === 'X' && xMoves.includes(center)) {
+            score -= currentStrategy.centerWeight * xFreshness[center];
         }
 
-        function evaluate(board, xMoves, oMoves) {
-            let score = 0;
-
-            const oFreshness = {};
-            if (oMoves.length > 0) {
-                const n = oMoves.length;
-                for (let i = 0; i < n; i++) {
-                    oFreshness[oMoves[i]] = (i + 1) / n;
-                }
+        const corners = [0, 2, 6, 8];
+        for (let corner of corners) {
+            if (board[corner] === 'O' && oMoves.includes(corner)) {
+                score += currentStrategy.cornerWeight * oFreshness[corner];
+            } else if (board[corner] === 'X' && xMoves.includes(corner)) {
+                score -= currentStrategy.cornerWeight * xFreshness[corner];
             }
-            const xFreshness = {};
-            if (xMoves.length > 0) {
-                const n = xMoves.length;
-                for (let i = 0; i < n; i++) {
-                    xFreshness[xMoves[i]] = (i + 1) / n;
-                }
-            }
+        }
 
-            const winPatterns = [
-                [0, 1, 2], [3, 4, 5], [6, 7, 8],
-                [0, 3, 6], [1, 4, 7], [2, 5, 8],
-                [0, 4, 8], [2, 4, 6]
-            ];
+        // Open lines
+        let oOpenLines = 0;
+        let xOpenLines = 0;
+        for (let pattern of winPatterns) {
+            const cells = pattern.map(i => board[i]);
+            if (!cells.includes('X')) oOpenLines++;
+            if (!cells.includes('O')) xOpenLines++;
+        }
+        score += oOpenLines * currentStrategy.openLineWeight;
+        score -= xOpenLines * currentStrategy.openLineWeight;
 
-            for (let pattern of winPatterns) {
-                const cells = pattern.map(i => board[i]);
-                const oCount = cells.filter(cell => cell === 'O').length;
-                const xCount = cells.filter(cell => cell === 'X').length;
-                const emptyCount = cells.filter(cell => cell === '').length;
+        // Fork opportunities
+        const oForks = countForkOpportunities('O', board, oMoves);
+        const xForks = countForkOpportunities('X', board, xMoves);
+        score += currentStrategy.forkWeight * oForks;
+        score -= currentStrategy.forkWeight * xForks;
 
-                if (xCount === 0 && oCount > 0) {
-                    if (oCount === 2 && emptyCount === 1) {
-                        const oIndices = pattern.filter(i => board[i] === 'O');
-                        const freshSum = oFreshness[oIndices[0]] + oFreshness[oIndices[1]];
-                        score += freshSum * 50;
-                    } else if (oCount === 1 && emptyCount === 2) {
-                        const oIndex = pattern.find(i => board[i] === 'O');
-                        score += oFreshness[oIndex] * 5;
+        return score;
+    }
+
+    function minimax(board, xMoves, oMoves, depth, isMaximizing, alpha, beta) {
+        const winner = checkWinner();
+        if (winner === 'O') return 10000 - depth;
+        if (winner === 'X') return -10000 + depth;
+        if (depth >= MAX_DEPTH) return evaluate(board, xMoves, oMoves);
+
+        if (isMaximizing) {
+            let maxEval = -Infinity;
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                if (board[i] === '') {
+                    const newBoard = [...board];
+                    const newOMoves = [...oMoves, i];
+                    newBoard[i] = 'O';
+                    if (newOMoves.length > 3) {
+                        const removed = newOMoves.shift();
+                        newBoard[removed] = '';
                     }
-                }
-                if (oCount === 0 && xCount > 0) {
-                    if (xCount === 2 && emptyCount === 1) {
-                        const xIndices = pattern.filter(i => board[i] === 'X');
-                        const freshSum = xFreshness[xIndices[0]] + xFreshness[xIndices[1]];
-                        score -= freshSum * 50;
-                    } else if (xCount === 1 && emptyCount === 2) {
-                        const xIndex = pattern.find(i => board[i] === 'X');
-                        score -= xFreshness[xIndex] * 5;
-                    }
+                    const eval = minimax(newBoard, xMoves, newOMoves, depth + 1, false, alpha, beta);
+                    maxEval = Math.max(maxEval, eval);
+                    alpha = Math.max(alpha, eval);
+                    if (beta <= alpha) break;
                 }
             }
+            return maxEval;
+        } else {
+            let minEval = Infinity;
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                if (board[i] === '') {
+                    const newBoard = [...board];
+                    const newXMoves = [...xMoves, i];
+                    newBoard[i] = 'X';
+                    if (newXMoves.length > 3) {
+                        const removed = newXMoves.shift();
+                        newBoard[removed] = '';
+                    }
+                    const eval = minimax(newBoard, newXMoves, oMoves, depth + 1, true, alpha, beta);
+                    minEval = Math.min(minEval, eval);
+                    beta = Math.min(beta, eval);
+                    if (beta <= alpha) break;
+                }
+            }
+            return minEval;
+        }
+    }
 
-            const center = 4;
+    function bestAIMove() {
+        let availableMoves = board.map((cell, index) => cell === '' ? index : null).filter(index => index !== null);
+
+        // Immediate win check
+        for (let move of availableMoves) {
+            board[move] = 'O';
+            if (checkWinner() === 'O') {
+                board[move] = '';
+                addMove('O', move, () => {
+                    const winner = checkWinner();
+                    if (winner) endGame(winner);
+                    else switchPlayer();
+                });
+                return;
+            }
+            board[move] = '';
+        }
+
+        // Immediate block check
+        for (let move of availableMoves) {
+            board[move] = 'X';
+            if (checkWinner() === 'X') {
+                board[move] = '';
+                addMove('O', move, () => {
+                    const winner = checkWinner();
+                    if (winner) endGame(winner);
+                    else switchPlayer();
+                });
+                return;
+            }
+            board[move] = '';
+        }
+
+        // Early game: if center is taken by X, pick a random corner
+        if (oMoves.length === 0 && board[4] === 'X') {
             const corners = [0, 2, 6, 8];
-            if (board[center] === 'O') score += 10;
-            if (board[center] === 'X') score -= 10;
-            for (let corner of corners) {
-                if (board[corner] === 'O') score += 5;
-                if (board[corner] === 'X') score -= 5;
-            }
-
-            let oOpenLines = 0;
-            let xOpenLines = 0;
-            for (let pattern of winPatterns) {
-                const cells = pattern.map(i => board[i]);
-                if (!cells.includes('X')) oOpenLines++;
-                if (!cells.includes('O')) xOpenLines++;
-            }
-            score += oOpenLines * 5;
-            score -= xOpenLines * 5;
-
-            return score;
-        }
-
-        function minimax(board, xMoves, oMoves, depth, isMaximizing, alpha, beta) {
-            const winner = checkWinner();
-            if (winner === 'O') return 10000 - depth;
-            if (winner === 'X') return -10000 + depth;
-            if (depth >= MAX_DEPTH) return evaluate(board, xMoves, oMoves);
-
-            if (isMaximizing) {
-                let maxEval = -Infinity;
-                for (let i = 0; i < BOARD_SIZE; i++) {
-                    if (board[i] === '') {
-                        const newBoard = [...board];
-                        const newOMoves = [...oMoves, i];
-                        newBoard[i] = 'O';
-                        if (newOMoves.length > 3) {
-                            const removed = newOMoves.shift();
-                            newBoard[removed] = '';
-                        }
-                        const eval = minimax(newBoard, xMoves, newOMoves, depth + 1, false, alpha, beta);
-                        maxEval = Math.max(maxEval, eval);
-                        alpha = Math.max(alpha, eval);
-                        if (beta <= alpha) break;
-                    }
-                }
-                return maxEval;
-            } else {
-                let minEval = Infinity;
-                for (let i = 0; i < BOARD_SIZE; i++) {
-                    if (board[i] === '') {
-                        const newBoard = [...board];
-                        const newXMoves = [...xMoves, i];
-                        newBoard[i] = 'X';
-                        if (newXMoves.length > 3) {
-                            const removed = newXMoves.shift();
-                            newBoard[removed] = '';
-                        }
-                        const eval = minimax(newBoard, newXMoves, oMoves, depth + 1, true, alpha, beta);
-                        minEval = Math.min(minEval, eval);
-                        beta = Math.min(beta, eval);
-                        if (beta <= alpha) break;
-                    }
-                }
-                return minEval;
-            }
-        }
-
-        function bestAIMove() {
-            let availableMoves = board.map((cell, index) => cell === '' ? index : null).filter(index => index !== null);
-
-            for (let move of availableMoves) {
-                board[move] = 'O';
-                if (checkWinner() === 'O') {
-                    board[move] = '';
-                    addMove('O', move, () => {
-                        const winner = checkWinner();
-                        if (winner) endGame(winner);
-                        else switchPlayer();
-                    });
-                    return;
-                }
-                board[move] = '';
-            }
-
-            for (let move of availableMoves) {
-                board[move] = 'X';
-                if (checkWinner() === 'X') {
-                    board[move] = '';
-                    addMove('O', move, () => {
-                        const winner = checkWinner();
-                        if (winner) endGame(winner);
-                        else switchPlayer();
-                    });
-                    return;
-                }
-                board[move] = '';
-            }
-
-            let bestScore = -Infinity;
-            let bestMoves = [];
-            for (let move of availableMoves) {
-                const newBoard = [...board];
-                const newOMoves = [...oMoves, move];
-                newBoard[move] = 'O';
-                if (newOMoves.length > 3) {
-                    const removed = newOMoves.shift();
-                    newBoard[removed] = '';
-                }
-                const score = minimax(newBoard, [...xMoves], newOMoves, 0, false, -Infinity, Infinity);
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMoves = [move];
-                } else if (score === bestScore) {
-                    bestMoves.push(move);
-                }
-            }
-
-            const move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
-            addMove('O', move, () => {
+            const randomCorner = corners[Math.floor(Math.random() * corners.length)];
+            addMove('O', randomCorner, () => {
                 const winner = checkWinner();
                 if (winner) endGame(winner);
                 else switchPlayer();
             });
+            return;
         }
 
-        createBoard();
-    </script>
+        // Early game: prioritize center if available
+        if (oMoves.length === 0 && board[4] === '') {
+            addMove('O', 4, () => {
+                const winner = checkWinner();
+                if (winner) endGame(winner);
+                else switchPlayer();
+            });
+            return;
+        }
+
+        // Check for fork opportunities
+        for (let move of availableMoves) {
+            const tempBoard = [...board];
+            const tempOMoves = [...oMoves, move];
+            tempBoard[move] = 'O';
+            if (tempOMoves.length > 3) {
+                const removed = tempOMoves.shift();
+                tempBoard[removed] = '';
+            }
+            if (countForkOpportunities('O', tempBoard, tempOMoves) > 0) {
+                addMove('O', move, () => {
+                    const winner = checkWinner();
+                    if (winner) endGame(winner);
+                    else switchPlayer();
+                });
+                return;
+            }
+        }
+
+        // Block opponent's forks
+        for (let move of availableMoves) {
+            const tempBoard = [...board];
+            const tempXMoves = [...xMoves, move];
+            tempBoard[move] = 'X';
+            if (tempXMoves.length > 3) {
+                const removed = tempXMoves.shift();
+                tempBoard[removed] = '';
+            }
+            if (countForkOpportunities('X', tempBoard, tempXMoves) > 0) {
+                board[move] = '';
+                addMove('O', move, () => {
+                    const winner = checkWinner();
+                    if (winner) endGame(winner);
+                    else switchPlayer();
+                });
+                return;
+            }
+        }
+
+        // Minimax for best move
+        let bestScore = -Infinity;
+        let bestMoves = [];
+        for (let move of availableMoves) {
+            const newBoard = [...board];
+            const newOMoves = [...oMoves, move];
+            newBoard[move] = 'O';
+            if (newOMoves.length > 3) {
+                const removed = newOMoves.shift();
+                newBoard[removed] = '';
+            }
+            const score = minimax(newBoard, [...xMoves], newOMoves, 0, false, -Infinity, Infinity);
+            if (score > bestScore) {
+                bestScore = score;
+                bestMoves = [move];
+            } else if (score === bestScore) {
+                bestMoves.push(move);
+            }
+        }
+        const move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+        addMove('O', move, () => {
+            const winner = checkWinner();
+            if (winner) endGame(winner);
+            else switchPlayer();
+        });
+    }
+
+    createBoard();
+</script>
 </body>
 </html>
