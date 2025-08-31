@@ -1,5 +1,6 @@
 <!-- BY: Tariqul Islam -->
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -37,6 +38,11 @@
             box-shadow: 0 15px 25px rgba(0, 0, 0, 0.5);
             width: 90%;
             max-width: 400px;
+            transition: box-shadow 0.5s ease;
+        }
+
+        .game-container:hover {
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.7);
         }
 
         .player-turn {
@@ -44,6 +50,7 @@
             margin-bottom: 20px;
             text-transform: uppercase;
             letter-spacing: 3px;
+            transition: color 0.3s ease;
         }
 
         .player-turn span {
@@ -70,16 +77,28 @@
             transition: all 0.3s ease;
             border-radius: 10px;
             animation: popIn 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
 
         @keyframes popIn {
-            from { transform: scale(0); }
-            to { transform: scale(1); }
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
 
         .cell:hover {
-            background: #ffffff;
+            background: #f0f0f0;
             transform: scale(1.05);
+            box-shadow: 0 0 10px #00d0ff;
+        }
+
+        .cell.x, .cell.o {
+            animation: markAppear 0.5s ease;
+        }
+
+        @keyframes markAppear {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
         }
 
         .cell.x {
@@ -93,7 +112,12 @@
         }
 
         .cell.removing {
-            border-color: red;
+            animation: fadeOut 1s ease forwards;
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.5); }
         }
 
         .player-info {
@@ -117,6 +141,7 @@
         .reset-btn:hover {
             background: #ff0000;
             transform: scale(1.05);
+            box-shadow: 0 0 10px #ff0000;
         }
 
         .winner-message {
@@ -133,6 +158,12 @@
             display: none;
             width: 80%;
             max-width: 400px;
+            animation: popUp 0.5s ease;
+        }
+
+        @keyframes popUp {
+            from { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
 
         .credit {
@@ -145,9 +176,11 @@
         .credit a {
             color: #ff0000;
             text-decoration: none;
+            transition: color 0.3s ease;
         }
 
         .credit a:hover {
+            color: #00d0ff;
             text-decoration: underline;
         }
 
@@ -200,7 +233,7 @@
         <button class="reset-btn" onclick="resetGame()">RESET</button>
     </div>
     
-    <div class="credit">PLAY: <a href="https://tariqulislamrahat.github.io/xoxo/single-player/">SINGLE PLAYER</a></div>
+    <div class="credit">PLAY: <a href="https://tariqulislamrahat.github.io/xoxo/">MULTI PLAYER</a></div>
 
     <div id="winnerMessage" class="winner-message">
         <h2 id="winnerText"></h2>
@@ -209,10 +242,19 @@
     <script>
         const BOARD_SIZE = 9;
         const MAX_MOVES_PER_PLAYER = 3;
+        const MAX_DEPTH = 8;
         let currentPlayer = 'x';
         let board = Array(BOARD_SIZE).fill(null);
         let xMoves = [];
         let oMoves = [];
+        let gameOver = false;
+        let isAnimating = false;
+
+        const winPatterns = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
 
         function createBoard() {
             const boardElement = document.getElementById('board');
@@ -221,46 +263,61 @@
                 const cell = document.createElement('div');
                 cell.classList.add('cell');
                 cell.setAttribute('data-index', i);
-                cell.addEventListener('click', () => handleCellClick(i));
+                cell.addEventListener('click', handleCellClick);
                 boardElement.appendChild(cell);
             }
         }
 
-        function handleCellClick(index) {
-            if (board[index] || checkWinner()) return;
+        function handleCellClick(event) {
+            if (currentPlayer !== 'x' || gameOver || isAnimating) return;
+            const index = parseInt(event.target.getAttribute('data-index'));
+            if (board[index]) return;
+            const removed = placeMove(index);
+            if (gameOver) return;
+            if (removed) {
+                setTimeout(aiMove, 1000);
+            } else {
+                aiMove();
+            }
+        }
 
+        function placeMove(index) {
             board[index] = currentPlayer;
             const cell = document.querySelector(`[data-index="${index}"]`);
+            cell.classList.remove('x', 'o', 'removing');
             cell.textContent = currentPlayer.toUpperCase();
             cell.classList.add(currentPlayer);
 
-            trackPlayerMoves(index);
+            const removed = trackPlayerMoves(index);
 
-            if (checkWinner()) {
-                showWinner();
-                return;
+            if (checkWinner(currentPlayer)) {
+                showWinner(currentPlayer);
+                gameOver = true;
             }
 
             switchPlayer();
+            return removed;
         }
 
         function trackPlayerMoves(index) {
             const movesArray = currentPlayer === 'x' ? xMoves : oMoves;
-
             movesArray.push(index);
+            let removed = false;
 
             if (movesArray.length > MAX_MOVES_PER_PLAYER) {
+                removed = true;
+                isAnimating = true;
                 const oldestMove = movesArray.shift();
                 const oldestCell = document.querySelector(`[data-index="${oldestMove}"]`);
-
                 oldestCell.classList.add('removing');
-
+                board[oldestMove] = null;
                 setTimeout(() => {
-                    board[oldestMove] = null;
                     oldestCell.textContent = '';
                     oldestCell.classList.remove('x', 'o', 'removing');
+                    isAnimating = false;
                 }, 1000);
             }
+            return removed;
         }
 
         function switchPlayer() {
@@ -268,25 +325,17 @@
             document.getElementById('currentPlayer').textContent = currentPlayer.toUpperCase();
         }
 
-        function checkWinner() {
-            const winPatterns = [
-                [0, 1, 2], [3, 4, 5], [6, 7, 8],
-                [0, 3, 6], [1, 4, 7], [2, 5, 8],
-                [0, 4, 8], [2, 4, 6]
-            ];
-
-            const movesArray = currentPlayer === 'x' ? xMoves : oMoves;
-
-            return winPatterns.some(pattern => {
-                return pattern.every(index => movesArray.includes(index));
-            });
+        function checkWinner(player) {
+            const movesArray = player === 'x' ? xMoves : oMoves;
+            return winPatterns.some(pattern => pattern.every(index => movesArray.includes(index)));
         }
 
-        function showWinner() {
+        function showWinner(player) {
             const winnerMessage = document.getElementById('winnerMessage');
             const winnerText = document.getElementById('winnerText');
-            winnerText.textContent = `Player ${currentPlayer.toUpperCase()} Wins!`;
+            winnerText.textContent = `Player ${player.toUpperCase()} Wins!`;
             winnerMessage.style.display = 'block';
+            gameOver = true;
         }
 
         function resetGame() {
@@ -294,10 +343,111 @@
             currentPlayer = 'x';
             xMoves = [];
             oMoves = [];
+            gameOver = false;
+            isAnimating = false;
 
             document.getElementById('currentPlayer').textContent = 'X';
             document.getElementById('winnerMessage').style.display = 'none';
             createBoard();
+        }
+
+        function aiMove() {
+            if (gameOver || isAnimating) {
+                if (isAnimating) setTimeout(aiMove, 100);
+                return;
+            }
+            const move = findBestMove();
+            const removed = placeMove(move);
+            if (removed && !gameOver) {
+            }
+        }
+
+        function findBestMove() {
+            let bestScore = -Infinity;
+            let move;
+            const empties = getEmptyCells();
+            for (let pos of empties) {
+                let newOM = [...oMoves, pos];
+                if (newOM.length > MAX_MOVES_PER_PLAYER) newOM.shift();
+                const score = minimax(xMoves, newOM, false, 1, -Infinity, Infinity);
+                if (score > bestScore) {
+                    bestScore = score;
+                    move = pos;
+                }
+            }
+            return move;
+        }
+
+        function minimax(xM, oM, isMax, depth, alpha, beta) {
+            let score = evaluate(xM, oM);
+            if (score >= 10) return score - depth;
+            if (score <= -10) return score + depth;
+            if (depth >= MAX_DEPTH) return score;
+
+            const empties = getEmpty(xM, oM);
+            if (empties.length === 0) return 0;
+
+            if (isMax) {
+                let maxEval = -Infinity;
+                for (let pos of empties) {
+                    let newOM = [...oM, pos];
+                    if (newOM.length > MAX_MOVES_PER_PLAYER) newOM.shift();
+                    let eval = minimax(xM, newOM, false, depth + 1, alpha, beta);
+                    maxEval = Math.max(maxEval, eval);
+                    alpha = Math.max(alpha, eval);
+                    if (beta <= alpha) break;
+                }
+                return maxEval;
+            } else {
+                let minEval = Infinity;
+                for (let pos of empties) {
+                    let newXM = [...xM, pos];
+                    if (newXM.length > MAX_MOVES_PER_PLAYER) newXM.shift();
+                    let eval = minimax(newXM, oM, true, depth + 1, alpha, beta);
+                    minEval = Math.min(minEval, eval);
+                    beta = Math.min(beta, eval);
+                    if (beta <= alpha) break;
+                }
+                return minEval;
+            }
+        }
+
+        function evaluate(xM, oM) {
+            if (checkWinForMoves(oM)) return 10;
+            if (checkWinForMoves(xM)) return -10;
+
+            let oScore = getPlayerScore(oM, xM);
+            let xScore = getPlayerScore(xM, oM);
+            return oScore - xScore;
+        }
+
+        function getPlayerScore(myMoves, oppMoves) {
+            let score = 0;
+            for (let pattern of winPatterns) {
+                let myCount = pattern.filter(i => myMoves.includes(i)).length;
+                let oppCount = pattern.filter(i => oppMoves.includes(i)).length;
+                if (myCount === 2 && oppCount === 0) score += 5;
+                if (myCount === 1 && oppCount === 0) score += 1;
+            }
+            if (myMoves.includes(4)) score += 2;
+            return score;
+        }
+
+        function checkWinForMoves(moves) {
+            return winPatterns.some(pattern => pattern.every(index => moves.includes(index)));
+        }
+
+        function getEmpty(xM, oM) {
+            const occupied = new Set([...xM, ...oM]);
+            let emp = [];
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                if (!occupied.has(i)) emp.push(i);
+            }
+            return emp;
+        }
+
+        function getEmptyCells() {
+            return getEmpty(xMoves, oMoves);
         }
 
         createBoard();
