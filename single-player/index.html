@@ -1,12 +1,16 @@
-<!-- BY: Tariqul Islam (V3) -->
+<!-- BY: Tariqul Islam -->
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>XOXO</title>
+    <link rel="icon" href="../img/bar.svg">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        
         body {
             display: flex;
             flex-direction: column;
@@ -20,27 +24,12 @@
             color: #ffffff;
             animation: fadeIn 1s ease-in-out;
         }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
         }
-        .timer-container {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .timer, .best-time {
-            font-size: 2rem;
-            color: #ffffff;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        .best-time {
-            font-size: 1.2rem;
-            margin-top: 10px;
-        }
-        .timer {
-            font-weight: 700;
-        }
+
         .game-container {
             text-align: center;
             background: rgba(0, 0, 0, 0.6);
@@ -49,25 +38,32 @@
             box-shadow: 0 15px 25px rgba(0, 0, 0, 0.5);
             width: 90%;
             max-width: 400px;
-            box-sizing: border-box;
+            transition: box-shadow 0.5s ease;
         }
+
+        .game-container:hover {
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.7);
+        }
+
         .player-turn {
             font-size: 1.8rem;
             margin-bottom: 20px;
             text-transform: uppercase;
             letter-spacing: 3px;
+            transition: color 0.3s ease;
         }
+
         .player-turn span {
             color: #ff002b;
         }
+
         .board {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             grid-gap: 10px;
-            margin: 0 auto;
-            width: 100%;
-            box-sizing: border-box;
+            justify-content: center;
         }
+
         .cell {
             width: 100%;
             aspect-ratio: 1 / 1;
@@ -81,24 +77,54 @@
             transition: all 0.3s ease;
             border-radius: 10px;
             animation: popIn 0.3s ease;
-            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
         }
+
         @keyframes popIn {
-            from { transform: scale(0); }
-            to { transform: scale(1); }
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
+
         .cell:hover {
             background: #f0f0f0;
             transform: scale(1.05);
+            box-shadow: 0 0 10px #00d0ff;
         }
+
+        .cell.x, .cell.o {
+            animation: markAppear 0.5s ease;
+        }
+
+        @keyframes markAppear {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
         .cell.x {
             color: #00d0ff;
             text-shadow: 0 0 10px #00d0ff;
         }
+
         .cell.o {
             color: #ff0000;
-            text-shadow: 0 0 15px #ff0000;
+            text-shadow: 0 0 10px #ff0000;
         }
+
+        .cell.removing {
+            animation: fadeOut 1s ease forwards;
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.5); }
+        }
+
+        .player-info {
+            margin-top: 20px;
+            color: white;
+        }
+
         .reset-btn {
             background: #ff002b;
             border: 3px solid #00d0ff;
@@ -111,10 +137,13 @@
             transition: all 0.3s ease;
             margin-top: 20px;
         }
+
         .reset-btn:hover {
             background: #ff0000;
             transform: scale(1.05);
+            box-shadow: 0 0 10px #ff0000;
         }
+
         .winner-message {
             position: fixed;
             top: 50%;
@@ -129,552 +158,299 @@
             display: none;
             width: 80%;
             max-width: 400px;
+            animation: popUp 0.5s ease;
         }
-        .best-player {
-            color: #ff002b;
+
+        @keyframes popUp {
+            from { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
-        @keyframes flashRed {
-            0% { border-color: #00d0ff; }
-            50% { border-color: #ff002b; }
-            100% { border-color: #00d0ff; }
-        }
-        .cell.flash {
-            animation: flashRed 0.5s ease-in-out;
-        }
+
         .credit {
             margin-top: 20px;
             font-size: 0.9rem;
             color: #ffffff;
-            text-align: center;
+            text-align: center; 
         }
+
         .credit a {
             color: #ff0000;
             text-decoration: none;
+            transition: color 0.3s ease;
         }
+
         .credit a:hover {
+            color: #00d0ff;
             text-decoration: underline;
+        }
+
+        @media (min-width: 768px) {
+            .player-turn {
+                font-size: 2rem;
+            }
+
+            .cell {
+                font-size: 3.5rem;
+            }
+
+            .reset-btn {
+                font-size: 1.2rem;
+            }
+
+            .winner-message {
+                font-size: 1.2rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .game-container {
+                padding: 40px;
+            }
+
+            .player-turn {
+                font-size: 2.2rem;
+            }
+
+            .cell {
+                font-size: 4rem;
+            }
+
+            .reset-btn {
+                font-size: 1.4rem;
+                padding: 12px 24px;
+            }
+
+            .winner-message {
+                font-size: 1.4rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="timer-container">
-        <div id="timer" class="timer">00:00:00</div>
-        <div id="bestTime" class="best-time">Best by " " | --:--:---</div>
-    </div>
     <div class="game-container">
         <div class="player-turn"><span id="currentPlayer">X</span>'s Turn</div>
         <div class="board" id="board"></div><br>
         <button class="reset-btn" onclick="resetGame()">RESET</button>
     </div>
-    <div class="credit">PLAY: <a href="https://tariqulislamrahat.github.io/xoxo/two-player/">TWO PLAYERS</a></div>
+    
+    <div class="credit">PLAY: <a href="https://tariqulislamrahat.github.io/xoxo/">MULTI PLAYER</a></div>
+
     <div id="winnerMessage" class="winner-message">
         <h2 id="winnerText"></h2>
     </div>
- 
-<script src="https://cdn.jsdelivr.net/npm/devtools-detect/index.js"></script>
-<script>
-    // Anti-cheat measures (unchanged)
-    function redirectIfDevToolsDetected() {
-        window.location.href = 'https://tariqulislamrahat.github.io/xoxo/';
-    }
-    document.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        redirectIfDevToolsDetected();
-    });
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J')) || (e.ctrlKey && e.key === 'u')) {
-            e.preventDefault();
-            redirectIfDevToolsDetected();
+
+    <script>
+        const BOARD_SIZE = 9;
+        const MAX_MOVES_PER_PLAYER = 3;
+        const MAX_DEPTH = 8;
+        let currentPlayer = 'x';
+        let board = Array(BOARD_SIZE).fill(null);
+        let xMoves = [];
+        let oMoves = [];
+        let gameOver = false;
+        let isAnimating = false;
+
+        const winPatterns = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        function createBoard() {
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.setAttribute('data-index', i);
+                cell.addEventListener('click', handleCellClick);
+                boardElement.appendChild(cell);
+            }
         }
-    });
-    if (window.devtools && window.devtools.isOpen) {
-        redirectIfDevToolsDetected();
-    }
-    window.addEventListener('devtoolschange', function (e) {
-        if (e.detail.isOpen) {
-            redirectIfDevToolsDetected();
+
+        function handleCellClick(event) {
+            if (currentPlayer !== 'x' || gameOver || isAnimating) return;
+            const index = parseInt(event.target.getAttribute('data-index'));
+            if (board[index]) return;
+            const removed = placeMove(index);
+            if (gameOver) return;
+            if (removed) {
+                setTimeout(aiMove, 1000);
+            } else {
+                aiMove();
+            }
         }
-    });
-    window.addEventListener('resize', function () {
-        if (screen.width - window.innerWidth > 200 || screen.height - window.innerHeight > 200) {
-            redirectIfDevToolsDetected();
+
+        function placeMove(index) {
+            board[index] = currentPlayer;
+            const cell = document.querySelector(`[data-index="${index}"]`);
+            cell.classList.remove('x', 'o', 'removing');
+            cell.textContent = currentPlayer.toUpperCase();
+            cell.classList.add(currentPlayer);
+
+            const removed = trackPlayerMoves(index);
+
+            if (checkWinner(currentPlayer)) {
+                showWinner(currentPlayer);
+                gameOver = true;
+            }
+
+            switchPlayer();
+            return removed;
         }
-    });
-    function checkConsole() {
-        const start = performance.now();
-        console.log('Checking console timing');
-        const end = performance.now();
-        if (end - start > 50) {
-            redirectIfDevToolsDetected();
+
+        function trackPlayerMoves(index) {
+            const movesArray = currentPlayer === 'x' ? xMoves : oMoves;
+            movesArray.push(index);
+            let removed = false;
+
+            if (movesArray.length > MAX_MOVES_PER_PLAYER) {
+                removed = true;
+                isAnimating = true;
+                const oldestMove = movesArray.shift();
+                const oldestCell = document.querySelector(`[data-index="${oldestMove}"]`);
+                oldestCell.classList.add('removing');
+                board[oldestMove] = null;
+                setTimeout(() => {
+                    oldestCell.textContent = '';
+                    oldestCell.classList.remove('x', 'o', 'removing');
+                    isAnimating = false;
+                }, 1000);
+            }
+            return removed;
         }
-    }
-    setInterval(checkConsole, 1000);
-    function checkDebugger() {
-        const start = performance.now();
-        debugger;
-        const end = performance.now();
-        if (end - start > 100) {
-            redirectIfDevToolsDetected();
+
+        function switchPlayer() {
+            currentPlayer = currentPlayer === 'x' ? 'o' : 'x';
+            document.getElementById('currentPlayer').textContent = currentPlayer.toUpperCase();
         }
-    }
-    setInterval(checkDebugger, 1000);
 
-    // Game logic
-    const BOARD_SIZE = 9;
-    const MAX_MOVES_PER_PLAYER = 3;
-    const MAX_DEPTH = 6; // Sufficient depth given move constraints
-    let currentPlayer = 'X';
-    let board = Array(BOARD_SIZE).fill('');
-    let xMoves = [];
-    let oMoves = [];
-    let gameOver = false;
-    let startTime = 0;
-    let timerInterval = null;
-    let bestTime = null;
-    let bestPlayer = null;
-
-    const winPatterns = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
-        [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
-        [0, 4, 8], [2, 4, 6] // diagonals
-    ];
-
-    // Define multiple AI strategies with varying weights
-    const strategies = [
-        { centerWeight: 20, cornerWeight: 15, forkWeight: 200, openLineWeight: 10 }, // Balanced strategy
-        { centerWeight: 25, cornerWeight: 10, forkWeight: 150, openLineWeight: 15 }, // Center-focused
-        { centerWeight: 15, cornerWeight: 20, forkWeight: 180, openLineWeight: 12 }  // Corner-focused
-    ];
-    let currentStrategy = strategies[Math.floor(Math.random() * strategies.length)];
-
-    function createBoard() {
-        const boardElement = document.getElementById('board');
-        boardElement.innerHTML = '';
-        for (let i = 0; i < BOARD_SIZE; i++) {
-            const cell = document.createElement('div');
-            cell.classList.add('cell');
-            cell.setAttribute('data-index', i);
-            cell.addEventListener('click', () => handleCellClick(i));
-            boardElement.appendChild(cell);
+        function checkWinner(player) {
+            const movesArray = player === 'x' ? xMoves : oMoves;
+            return winPatterns.some(pattern => pattern.every(index => movesArray.includes(index)));
         }
-    }
 
-    function startTimer() {
-        startTime = Date.now();
-        updateTimerDisplay(0);
-        timerInterval = setInterval(updateTimer, 10);
-    }
-
-    function stopTimer() {
-        clearInterval(timerInterval);
-        timerInterval = null;
-        const elapsedTime = Date.now() - startTime;
-        updateTimerDisplay(elapsedTime);
-    }
-
-    function updateTimer() {
-        if (gameOver) return;
-        const elapsedTime = Date.now() - startTime;
-        updateTimerDisplay(elapsedTime);
-    }
-
-    function updateTimerDisplay(elapsedTime) {
-        document.getElementById('timer').textContent = formatTime(elapsedTime);
-    }
-
-    function formatTime(elapsedTime, label = '') {
-        const milliseconds = Math.floor(elapsedTime % 1000);
-        const seconds = Math.floor((elapsedTime / 1000) % 60);
-        const minutes = Math.floor((elapsedTime / (1000 * 60)) % 60);
-        const timeString = `${padZero(minutes)}:${padZero(seconds)}:${padZero(milliseconds, 3)}`;
-        if (label) {
-            const playerSpan = `<span class="best-player">${bestPlayer}</span>`;
-            return `Best by "${playerSpan}" | ${timeString}`;
+        function showWinner(player) {
+            const winnerMessage = document.getElementById('winnerMessage');
+            const winnerText = document.getElementById('winnerText');
+            winnerText.textContent = `Player ${player.toUpperCase()} Wins!`;
+            winnerMessage.style.display = 'block';
+            gameOver = true;
         }
-        return timeString;
-    }
 
-    function padZero(num, length = 2) {
-        return num.toString().padStart(length, '0');
-    }
+        function resetGame() {
+            board = Array(BOARD_SIZE).fill(null);
+            currentPlayer = 'x';
+            xMoves = [];
+            oMoves = [];
+            gameOver = false;
+            isAnimating = false;
 
-    function handleCellClick(index) {
-        if (gameOver || board[index] !== '' || currentPlayer !== 'X') return;
-        if (startTime === 0) startTimer();
-        addMove(currentPlayer, index, () => {
-            const winner = checkWinner();
-            if (winner) {
-                endGame(winner);
+            document.getElementById('currentPlayer').textContent = 'X';
+            document.getElementById('winnerMessage').style.display = 'none';
+            createBoard();
+        }
+
+        function aiMove() {
+            if (gameOver || isAnimating) {
+                if (isAnimating) setTimeout(aiMove, 100);
                 return;
             }
-            switchPlayer();
-            if (currentPlayer === 'O') {
-                setTimeout(bestAIMove, 500);
-            }
-        });
-    }
-
-    function addMove(player, index, callback) {
-        const movesArray = player === 'X' ? xMoves : oMoves;
-        if (movesArray.length === MAX_MOVES_PER_PLAYER) {
-            const oldestMove = movesArray[0];
-            const oldestCell = document.querySelector(`[data-index="${oldestMove}"]`);
-            oldestCell.classList.add('flash');
-            setTimeout(() => {
-                oldestCell.classList.remove('flash');
-                movesArray.shift();
-                board[oldestMove] = '';
-                oldestCell.textContent = '';
-                oldestCell.classList.remove('x', 'o');
-                movesArray.push(index);
-                board[index] = player;
-                const cell = document.querySelector(`[data-index="${index}"]`);
-                cell.textContent = player;
-                cell.classList.add(player.toLowerCase());
-                if (callback) callback();
-            }, 500);
-        } else {
-            movesArray.push(index);
-            board[index] = player;
-            const cell = document.querySelector(`[data-index="${index}"]`);
-            cell.textContent = player;
-            cell.classList.add(player.toLowerCase());
-            if (callback) callback();
-        }
-    }
-
-    function switchPlayer() {
-        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-        document.getElementById('currentPlayer').textContent = currentPlayer;
-    }
-
-    function checkWinner() {
-        for (let pattern of winPatterns) {
-            const [a, b, c] = pattern;
-            if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                return board[a];
+            const move = findBestMove();
+            const removed = placeMove(move);
+            if (removed && !gameOver) {
             }
         }
-        return null;
-    }
 
-    function endGame(winner) {
-        gameOver = true;
-        stopTimer();
-        const winnerMessage = document.getElementById('winnerMessage');
-        const winnerText = document.getElementById('winnerText');
-        if (winner) {
-            winnerText.textContent = `Player ${winner} Wins!`;
-            const elapsedTime = Date.now() - startTime;
-            if (bestTime === null || elapsedTime < bestTime) {
-                bestTime = elapsedTime;
-                bestPlayer = winner;
-                document.getElementById('bestTime').innerHTML = formatTime(bestTime, 'Best by ');
-            }
-        } else {
-            winnerText.textContent = "It's a Draw!";
-        }
-        winnerMessage.style.display = 'block';
-    }
-
-    function resetGame() {
-        clearInterval(timerInterval);
-        timerInterval = null;
-        board = Array(BOARD_SIZE).fill('');
-        xMoves = [];
-        oMoves = [];
-        currentPlayer = 'X';
-        gameOver = false;
-        startTime = 0;
-        document.getElementById('currentPlayer').textContent = "X";
-        document.getElementById('winnerMessage').style.display = 'none';
-        document.getElementById('timer').textContent = '00:00:00';
-        createBoard();
-        // Select a new random strategy for each game
-        currentStrategy = strategies[Math.floor(Math.random() * strategies.length)];
-    }
-
-    function countForkOpportunities(player, board, moves) {
-        let forkCount = 0;
-        const emptyCells = board.map((cell, index) => cell === '' ? index : null).filter(index => index !== null);
-        for (let cell of emptyCells) {
-            const tempBoard = [...board];
-            const tempMoves = [...moves, cell];
-            tempBoard[cell] = player;
-            if (tempMoves.length > 3) {
-                const removed = tempMoves.shift();
-                tempBoard[removed] = '';
-            }
-            let threatCount = 0;
-            for (let pattern of winPatterns) {
-                const [a, b, c] = pattern;
-                const patternCells = [tempBoard[a], tempBoard[b], tempBoard[c]];
-                const playerCount = patternCells.filter(cell => cell === player).length;
-                const emptyCount = patternCells.filter(cell => cell === '').length;
-                if (playerCount === 2 && emptyCount === 1) {
-                    threatCount++;
+        function findBestMove() {
+            let bestScore = -Infinity;
+            let move;
+            const empties = getEmptyCells();
+            for (let pos of empties) {
+                let newOM = [...oMoves, pos];
+                if (newOM.length > MAX_MOVES_PER_PLAYER) newOM.shift();
+                const score = minimax(xMoves, newOM, false, 1, -Infinity, Infinity);
+                if (score > bestScore) {
+                    bestScore = score;
+                    move = pos;
                 }
             }
-            if (threatCount >= 2) {
-                forkCount++;
-            }
-        }
-        return forkCount;
-    }
-
-    function evaluate(board, xMoves, oMoves) {
-        let score = 0;
-
-        // Freshness calculations
-        const oFreshness = {};
-        if (oMoves.length > 0) {
-            const n = oMoves.length;
-            for (let i = 0; i < n; i++) {
-                oFreshness[oMoves[i]] = (i + 1) / n;
-            }
-        }
-        const xFreshness = {};
-        if (xMoves.length > 0) {
-            const n = xMoves.length;
-            for (let i = 0; i < n; i++) {
-                xFreshness[xMoves[i]] = (i + 1) / n;
-            }
+            return move;
         }
 
-        // Evaluate winning patterns
-        for (let pattern of winPatterns) {
-            const cells = pattern.map(i => board[i]);
-            const oCount = cells.filter(cell => cell === 'O').length;
-            const xCount = cells.filter(cell => cell === 'X').length;
-            const emptyCount = cells.filter(cell => cell === '').length;
+        function minimax(xM, oM, isMax, depth, alpha, beta) {
+            let score = evaluate(xM, oM);
+            if (score >= 10) return score - depth;
+            if (score <= -10) return score + depth;
+            if (depth >= MAX_DEPTH) return score;
 
-            if (xCount === 0 && oCount > 0) {
-                if (oCount === 2 && emptyCount === 1) {
-                    const oIndices = pattern.filter(i => board[i] === 'O');
-                    const avgFreshness = (oFreshness[oIndices[0]] + oFreshness[oIndices[1]]) / 2;
-                    score += 100 * avgFreshness;
-                } else if (oCount === 1 && emptyCount === 2) {
-                    const oIndex = pattern.find(i => board[i] === 'O');
-                    score += 10 * oFreshness[oIndex];
-                }
-            }
+            const empties = getEmpty(xM, oM);
+            if (empties.length === 0) return 0;
 
-            if (oCount === 0 && xCount > 0) {
-                if (xCount === 2 && emptyCount === 1) {
-                    const xIndices = pattern.filter(i => board[i] === 'X');
-                    const avgFreshness = (xFreshness[xIndices[0]] + xFreshness[xIndices[1]]) / 2;
-                    score -= 100 * avgFreshness;
-                } else if (xCount === 1 && emptyCount === 2) {
-                    const xIndex = pattern.find(i => board[i] === 'X');
-                    score -= 10 * xFreshness[xIndex];
-                }
-            }
-        }
-
-        // Center and corners using strategy-specific weights
-        const center = 4;
-        if (board[center] === 'O' && oMoves.includes(center)) {
-            score += currentStrategy.centerWeight * oFreshness[center];
-        } else if (board[center] === 'X' && xMoves.includes(center)) {
-            score -= currentStrategy.centerWeight * xFreshness[center];
-        }
-
-        const corners = [0, 2, 6, 8];
-        for (let corner of corners) {
-            if (board[corner] === 'O' && oMoves.includes(corner)) {
-                score += currentStrategy.cornerWeight * oFreshness[corner];
-            } else if (board[corner] === 'X' && xMoves.includes(corner)) {
-                score -= currentStrategy.cornerWeight * xFreshness[corner];
-            }
-        }
-
-        // Open lines
-        let oOpenLines = 0;
-        let xOpenLines = 0;
-        for (let pattern of winPatterns) {
-            const cells = pattern.map(i => board[i]);
-            if (!cells.includes('X')) oOpenLines++;
-            if (!cells.includes('O')) xOpenLines++;
-        }
-        score += oOpenLines * currentStrategy.openLineWeight;
-        score -= xOpenLines * currentStrategy.openLineWeight;
-
-        // Fork opportunities
-        const oForks = countForkOpportunities('O', board, oMoves);
-        const xForks = countForkOpportunities('X', board, xMoves);
-        score += currentStrategy.forkWeight * oForks;
-        score -= currentStrategy.forkWeight * xForks;
-
-        return score;
-    }
-
-    function minimax(board, xMoves, oMoves, depth, isMaximizing, alpha, beta) {
-        const winner = checkWinner();
-        if (winner === 'O') return 10000 - depth;
-        if (winner === 'X') return -10000 + depth;
-        if (depth >= MAX_DEPTH) return evaluate(board, xMoves, oMoves);
-
-        if (isMaximizing) {
-            let maxEval = -Infinity;
-            for (let i = 0; i < BOARD_SIZE; i++) {
-                if (board[i] === '') {
-                    const newBoard = [...board];
-                    const newOMoves = [...oMoves, i];
-                    newBoard[i] = 'O';
-                    if (newOMoves.length > 3) {
-                        const removed = newOMoves.shift();
-                        newBoard[removed] = '';
-                    }
-                    const eval = minimax(newBoard, xMoves, newOMoves, depth + 1, false, alpha, beta);
+            if (isMax) {
+                let maxEval = -Infinity;
+                for (let pos of empties) {
+                    let newOM = [...oM, pos];
+                    if (newOM.length > MAX_MOVES_PER_PLAYER) newOM.shift();
+                    let eval = minimax(xM, newOM, false, depth + 1, alpha, beta);
                     maxEval = Math.max(maxEval, eval);
                     alpha = Math.max(alpha, eval);
                     if (beta <= alpha) break;
                 }
-            }
-            return maxEval;
-        } else {
-            let minEval = Infinity;
-            for (let i = 0; i < BOARD_SIZE; i++) {
-                if (board[i] === '') {
-                    const newBoard = [...board];
-                    const newXMoves = [...xMoves, i];
-                    newBoard[i] = 'X';
-                    if (newXMoves.length > 3) {
-                        const removed = newXMoves.shift();
-                        newBoard[removed] = '';
-                    }
-                    const eval = minimax(newBoard, newXMoves, oMoves, depth + 1, true, alpha, beta);
+                return maxEval;
+            } else {
+                let minEval = Infinity;
+                for (let pos of empties) {
+                    let newXM = [...xM, pos];
+                    if (newXM.length > MAX_MOVES_PER_PLAYER) newXM.shift();
+                    let eval = minimax(newXM, oM, true, depth + 1, alpha, beta);
                     minEval = Math.min(minEval, eval);
                     beta = Math.min(beta, eval);
                     if (beta <= alpha) break;
                 }
-            }
-            return minEval;
-        }
-    }
-
-    function bestAIMove() {
-        let availableMoves = board.map((cell, index) => cell === '' ? index : null).filter(index => index !== null);
-
-        // Immediate win check
-        for (let move of availableMoves) {
-            board[move] = 'O';
-            if (checkWinner() === 'O') {
-                board[move] = '';
-                addMove('O', move, () => {
-                    const winner = checkWinner();
-                    if (winner) endGame(winner);
-                    else switchPlayer();
-                });
-                return;
-            }
-            board[move] = '';
-        }
-
-        // Immediate block check
-        for (let move of availableMoves) {
-            board[move] = 'X';
-            if (checkWinner() === 'X') {
-                board[move] = '';
-                addMove('O', move, () => {
-                    const winner = checkWinner();
-                    if (winner) endGame(winner);
-                    else switchPlayer();
-                });
-                return;
-            }
-            board[move] = '';
-        }
-
-        // Early game: if center is taken by X, pick a random corner
-        if (oMoves.length === 0 && board[4] === 'X') {
-            const corners = [0, 2, 6, 8];
-            const randomCorner = corners[Math.floor(Math.random() * corners.length)];
-            addMove('O', randomCorner, () => {
-                const winner = checkWinner();
-                if (winner) endGame(winner);
-                else switchPlayer();
-            });
-            return;
-        }
-
-        // Early game: prioritize center if available
-        if (oMoves.length === 0 && board[4] === '') {
-            addMove('O', 4, () => {
-                const winner = checkWinner();
-                if (winner) endGame(winner);
-                else switchPlayer();
-            });
-            return;
-        }
-
-        // Check for fork opportunities
-        for (let move of availableMoves) {
-            const tempBoard = [...board];
-            const tempOMoves = [...oMoves, move];
-            tempBoard[move] = 'O';
-            if (tempOMoves.length > 3) {
-                const removed = tempOMoves.shift();
-                tempBoard[removed] = '';
-            }
-            if (countForkOpportunities('O', tempBoard, tempOMoves) > 0) {
-                addMove('O', move, () => {
-                    const winner = checkWinner();
-                    if (winner) endGame(winner);
-                    else switchPlayer();
-                });
-                return;
+                return minEval;
             }
         }
 
-        // Block opponent's forks
-        for (let move of availableMoves) {
-            const tempBoard = [...board];
-            const tempXMoves = [...xMoves, move];
-            tempBoard[move] = 'X';
-            if (tempXMoves.length > 3) {
-                const removed = tempXMoves.shift();
-                tempBoard[removed] = '';
-            }
-            if (countForkOpportunities('X', tempBoard, tempXMoves) > 0) {
-                board[move] = '';
-                addMove('O', move, () => {
-                    const winner = checkWinner();
-                    if (winner) endGame(winner);
-                    else switchPlayer();
-                });
-                return;
-            }
+        function evaluate(xM, oM) {
+            if (checkWinForMoves(oM)) return 10;
+            if (checkWinForMoves(xM)) return -10;
+
+            let oScore = getPlayerScore(oM, xM);
+            let xScore = getPlayerScore(xM, oM);
+            return oScore - xScore;
         }
 
-        // Minimax for best move
-        let bestScore = -Infinity;
-        let bestMoves = [];
-        for (let move of availableMoves) {
-            const newBoard = [...board];
-            const newOMoves = [...oMoves, move];
-            newBoard[move] = 'O';
-            if (newOMoves.length > 3) {
-                const removed = newOMoves.shift();
-                newBoard[removed] = '';
+        function getPlayerScore(myMoves, oppMoves) {
+            let score = 0;
+            for (let pattern of winPatterns) {
+                let myCount = pattern.filter(i => myMoves.includes(i)).length;
+                let oppCount = pattern.filter(i => oppMoves.includes(i)).length;
+                if (myCount === 2 && oppCount === 0) score += 5;
+                if (myCount === 1 && oppCount === 0) score += 1;
             }
-            const score = minimax(newBoard, [...xMoves], newOMoves, 0, false, -Infinity, Infinity);
-            if (score > bestScore) {
-                bestScore = score;
-                bestMoves = [move];
-            } else if (score === bestScore) {
-                bestMoves.push(move);
-            }
+            if (myMoves.includes(4)) score += 2;
+            return score;
         }
-        const move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
-        addMove('O', move, () => {
-            const winner = checkWinner();
-            if (winner) endGame(winner);
-            else switchPlayer();
-        });
-    }
 
-    createBoard();
-</script>
+        function checkWinForMoves(moves) {
+            return winPatterns.some(pattern => pattern.every(index => moves.includes(index)));
+        }
+
+        function getEmpty(xM, oM) {
+            const occupied = new Set([...xM, ...oM]);
+            let emp = [];
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                if (!occupied.has(i)) emp.push(i);
+            }
+            return emp;
+        }
+
+        function getEmptyCells() {
+            return getEmpty(xMoves, oMoves);
+        }
+
+        createBoard();
+    </script>
 </body>
 </html>
