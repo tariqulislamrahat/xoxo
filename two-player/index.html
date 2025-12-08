@@ -8,115 +8,202 @@
     <title>XOXO</title>
     <link rel="icon" href="../img/bar.svg">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
-            background: url('../img/bg.svg') no-repeat center center fixed;
-            background-size: cover;
-            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #0a0a0a 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             color: #ffffff;
-            animation: fadeIn 1s ease-in-out;
+            position: relative;
+            overflow-x: hidden;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
         }
 
         .game-container {
             text-align: center;
-            background: rgba(0, 0, 0, 0.6);
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.5);
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 48px 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
             width: 90%;
-            max-width: 400px;
+            max-width: 420px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            position: relative;
+            z-index: 1;
+            transition: transform 0.3s ease;
+        }
+
+        .game-container:hover {
+            transform: translateY(-4px);
         }
 
         .player-turn {
-            font-size: 1.8rem;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 3px;
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-bottom: 32px;
+            letter-spacing: 0.5px;
+            color: rgb(255, 255, 255);
         }
 
         .player-turn span {
-            color: #ff002b;
+            font-weight: 700;
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            transition: all 0.3s ease;
         }
 
         .board {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            grid-gap: 10px;
-            justify-content: center;
+            gap: 12px;
+            margin-bottom: 32px;
         }
 
         .cell {
             width: 100%;
             aspect-ratio: 1 / 1;
-            background: #ffffff;
-            border: 3px solid #00d0ff;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
             display: flex;
             justify-content: center;
             align-items: center;
             font-size: 2.5rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            border-radius: 10px;
-            animation: popIn 0.3s ease;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
         }
 
-        @keyframes popIn {
-            from { transform: scale(0); }
-            to { transform: scale(1); }
+        .cell::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .cell:hover {
-            background: #ffffff;
-            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.02);
+        }
+
+        .cell:hover::before {
+            opacity: 1;
         }
 
         .cell.x {
-            color: #00d0ff;
-            text-shadow: 0 0 10px #00d0ff;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.25);
+            animation: markAppear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .cell.o {
-            color: #ff0000;
-            text-shadow: 0 0 10px #ff0000;
+            color: #ffffff;
+            background: rgba(136, 136, 136, 0.06);
+            border-color: rgba(136, 136, 136, 0.25);
+            animation: markAppear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes markAppear {
+            from { 
+                opacity: 0; 
+                transform: scale(0.5) rotate(-10deg);
+            }
+            to { 
+                opacity: 1; 
+                transform: scale(1) rotate(0deg);
+            }
+        }
+
+        .cell.will-remove {
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            animation: pulseWarning 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulseWarning {
+            0%, 100% { 
+                border-color: rgba(255, 255, 255, 0.4);
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2);
+            }
+            50% { 
+                border-color: rgba(255, 255, 255, 0.7);
+                box-shadow: 0 0 0 8px rgba(255, 255, 255, 0);
+            }
         }
 
         .cell.removing {
-            border-color: red;
+            animation: fadeOut 0.5s ease forwards;
         }
 
-        .player-info {
-            margin-top: 20px;
-            color: white;
+        @keyframes fadeOut {
+            from { 
+                opacity: 1; 
+                transform: scale(1);
+            }
+            to { 
+                opacity: 0; 
+                transform: scale(0.5) rotate(15deg);
+            }
         }
 
         .reset-btn {
-            background: #ff002b;
-            border: 3px solid #00d0ff;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
             color: #ffffff;
-            padding: 10px 20px;
-            font-size: 1rem;
-            font-family: 'Orbitron', sans-serif;
-            border-radius: 5px;
+            padding: 14px 32px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            border-radius: 12px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.5px;
         }
 
         .reset-btn:hover {
-            background: #ff0000;
-            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .reset-btn:active {
+            transform: translateY(0);
         }
 
         .winner-message {
@@ -124,71 +211,98 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
             color: white;
-            padding: 30px;
-            border-radius: 15px;
+            padding: 48px 40px;
+            border-radius: 24px;
             text-align: center;
             z-index: 1000;
             display: none;
-            width: 80%;
+            width: 90%;
             max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+            animation: popUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popUp {
+            from { 
+                transform: translate(-50%, -50%) scale(0.8); 
+                opacity: 0;
+            }
+            to { 
+                transform: translate(-50%, -50%) scale(1); 
+                opacity: 1;
+            }
+        }
+
+        .winner-message h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            letter-spacing: 1px;
         }
 
         .credit {
-            margin-top: 20px;
-            font-size: 0.9rem;
-            color: #ffffff;
-            text-align: center; 
+            margin-top: 32px;
+            font-size: 0.875rem;
+            font-weight: 400;
+            color: rgb(255, 255, 255);
+            text-align: center;
+            letter-spacing: 0.3px;
+            z-index: 1;
+            position: relative;
         }
 
         .credit a {
-            color: #ff0000;
+            color: rgb(255, 255, 255);
             text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            border-bottom: 1px solid transparent;
         }
 
         .credit a:hover {
-            text-decoration: underline;
+            color: #ffffff;
+            border-bottom-color: rgba(255, 255, 255, 0.5);
         }
 
         @media (min-width: 768px) {
-            .player-turn {
+            .game-container {
+                padding: 56px 48px;
+            }
+            .player-turn { 
+                font-size: 1.6rem; 
+            }
+            .player-turn span {
                 font-size: 2rem;
             }
-
-            .cell {
-                font-size: 3.5rem;
+            .cell { 
+                font-size: 3rem; 
             }
-
-            .reset-btn {
-                font-size: 1.2rem;
-            }
-
-            .winner-message {
-                font-size: 1.2rem;
+            .board {
+                gap: 14px;
             }
         }
 
         @media (min-width: 1024px) {
-            .game-container {
-                padding: 40px;
+            .game-container { 
+                padding: 64px 56px; 
+                max-width: 460px;
             }
-
-            .player-turn {
+            .player-turn { 
+                font-size: 1.75rem; 
+            }
+            .player-turn span {
                 font-size: 2.2rem;
             }
-
-            .cell {
-                font-size: 4rem;
+            .cell { 
+                font-size: 3.5rem; 
             }
-
-            .reset-btn {
-                font-size: 1.4rem;
-                padding: 12px 24px;
-            }
-
-            .winner-message {
-                font-size: 1.4rem;
+            .board {
+                gap: 16px;
             }
         }
     </style>
@@ -196,14 +310,15 @@
 <body>
     <div class="game-container">
         <div class="player-turn"><span id="currentPlayer">X</span>'s Turn</div>
-        <div class="board" id="board"></div><br>
-        <button class="reset-btn" onclick="resetGame()">RESET</button>
+        <div class="board" id="board"></div>
+        <button class="reset-btn" onclick="resetGame()">Reset Game</button>
     </div>
     
     <div class="credit">PLAY: <a href="https://tariqulislamrahat.github.io/xoxo/single-player/">SINGLE PLAYER</a></div>
 
     <div id="winnerMessage" class="winner-message">
         <h2 id="winnerText"></h2>
+        <button class="reset-btn" onclick="resetGame()">Play Again</button>
     </div>
 
     <script>
@@ -258,8 +373,22 @@
                 setTimeout(() => {
                     board[oldestMove] = null;
                     oldestCell.textContent = '';
-                    oldestCell.classList.remove('x', 'o', 'removing');
-                }, 1000);
+                    oldestCell.classList.remove('x', 'o', 'removing', 'will-remove');
+                }, 500);
+            }
+            
+            updateWillRemoveVisuals();
+        }
+
+        function updateWillRemoveVisuals() {
+            document.querySelectorAll('.will-remove').forEach(el => el.classList.remove('will-remove'));
+            if (xMoves.length === MAX_MOVES_PER_PLAYER) {
+                const nextToRemove = document.querySelector(`[data-index="${xMoves[0]}"]`);
+                if(nextToRemove) nextToRemove.classList.add('will-remove');
+            }
+            if (oMoves.length === MAX_MOVES_PER_PLAYER) {
+                const nextToRemove = document.querySelector(`[data-index="${oMoves[0]}"]`);
+                if(nextToRemove) nextToRemove.classList.add('will-remove');
             }
         }
 
@@ -286,6 +415,10 @@
             const winnerMessage = document.getElementById('winnerMessage');
             const winnerText = document.getElementById('winnerText');
             winnerText.textContent = `Player ${currentPlayer.toUpperCase()} Wins!`;
+            winnerText.style.background = 'linear-gradient(135deg, #ffffff 0%, #888888 100%)';
+            winnerText.style.webkitBackgroundClip = 'text';
+            winnerText.style.webkitTextFillColor = 'transparent';
+            winnerText.style.backgroundClip = 'text';
             winnerMessage.style.display = 'block';
         }
 
