@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XOXO</title>
+    <title>XOXO - Unbeatable</title>
     <link rel="icon" href="../img/bar.svg">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
@@ -19,6 +19,7 @@
             min-height: 100vh;
             margin: 0;
             background: url('../img/bg.svg') no-repeat center center fixed;
+            background-color: #1a1a1a;
             background-size: cover;
             font-family: 'Orbitron', sans-serif;
             color: #ffffff;
@@ -32,17 +33,18 @@
 
         .game-container {
             text-align: center;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.75);
             border-radius: 15px;
             padding: 30px;
             box-shadow: 0 15px 25px rgba(0, 0, 0, 0.5);
             width: 90%;
             max-width: 400px;
             transition: box-shadow 0.5s ease;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .game-container:hover {
-            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.8);
         }
 
         .player-turn {
@@ -67,8 +69,8 @@
         .cell {
             width: 100%;
             aspect-ratio: 1 / 1;
-            background: #ffffff;
-            border: 3px solid #00d0ff;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid #00d0ff;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -79,6 +81,7 @@
             animation: popIn 0.3s ease;
             position: relative;
             overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0, 208, 255, 0.1);
         }
 
         @keyframes popIn {
@@ -87,9 +90,9 @@
         }
 
         .cell:hover {
-            background: #f0f0f0;
+            background: rgba(255, 255, 255, 0.15);
             transform: scale(1.05);
-            box-shadow: 0 0 10px #00d0ff;
+            box-shadow: 0 0 15px #00d0ff;
         }
 
         .cell.x, .cell.o {
@@ -103,16 +106,31 @@
 
         .cell.x {
             color: #00d0ff;
-            text-shadow: 0 0 10px #00d0ff;
+            text-shadow: 0 0 15px #00d0ff;
+            background: rgba(0, 208, 255, 0.1);
         }
 
         .cell.o {
             color: #ff0000;
-            text-shadow: 0 0 10px #ff0000;
+            text-shadow: 0 0 15px #ff0000;
+            background: rgba(255, 0, 0, 0.1);
+            border-color: #ff0000;
+        }
+
+        .cell.will-remove {
+            border: 4px solid #ff0000;
+            animation: pulseBorder 0.8s infinite;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.8), inset 0 0 20px rgba(255, 0, 0, 0.3);
+        }
+
+        @keyframes pulseBorder {
+            0% { border-color: #ff0000; opacity: 1; }
+            50% { border-color: #ff6666; opacity: 0.6; }
+            100% { border-color: #ff0000; opacity: 1; }
         }
 
         .cell.removing {
-            animation: fadeOut 1s ease forwards;
+            animation: fadeOut 0.6s ease forwards;
         }
 
         @keyframes fadeOut {
@@ -120,28 +138,26 @@
             to { opacity: 0; transform: scale(0.5); }
         }
 
-        .player-info {
-            margin-top: 20px;
-            color: white;
-        }
-
         .reset-btn {
-            background: #ff002b;
-            border: 3px solid #00d0ff;
+            background: linear-gradient(45deg, #ff002b, #880017);
+            border: none;
             color: #ffffff;
-            padding: 10px 20px;
+            padding: 12px 25px;
             font-size: 1rem;
             font-family: 'Orbitron', sans-serif;
             border-radius: 5px;
             cursor: pointer;
             transition: all 0.3s ease;
             margin-top: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 5px 15px rgba(255, 0, 43, 0.3);
         }
 
         .reset-btn:hover {
-            background: #ff0000;
-            transform: scale(1.05);
-            box-shadow: 0 0 10px #ff0000;
+            background: linear-gradient(45deg, #ff1a40, #aa001d);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 0, 43, 0.5);
         }
 
         .winner-message {
@@ -149,16 +165,18 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             color: white;
-            padding: 30px;
+            padding: 40px;
             border-radius: 15px;
             text-align: center;
             z-index: 1000;
             display: none;
             width: 80%;
             max-width: 400px;
-            animation: popUp 0.5s ease;
+            border: 2px solid #00d0ff;
+            box-shadow: 0 0 50px rgba(0, 208, 255, 0.5);
+            animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         @keyframes popUp {
@@ -169,7 +187,7 @@
         .credit {
             margin-top: 20px;
             font-size: 0.9rem;
-            color: #ffffff;
+            color: #aaaaaa;
             text-align: center; 
         }
 
@@ -177,6 +195,7 @@
             color: #ff0000;
             text-decoration: none;
             transition: color 0.3s ease;
+            font-weight: bold;
         }
 
         .credit a:hover {
@@ -185,44 +204,16 @@
         }
 
         @media (min-width: 768px) {
-            .player-turn {
-                font-size: 2rem;
-            }
-
-            .cell {
-                font-size: 3.5rem;
-            }
-
-            .reset-btn {
-                font-size: 1.2rem;
-            }
-
-            .winner-message {
-                font-size: 1.2rem;
-            }
+            .player-turn { font-size: 2rem; }
+            .cell { font-size: 3.5rem; }
+            .reset-btn { font-size: 1.2rem; }
+            .winner-message { font-size: 1.4rem; }
         }
 
         @media (min-width: 1024px) {
-            .game-container {
-                padding: 40px;
-            }
-
-            .player-turn {
-                font-size: 2.2rem;
-            }
-
-            .cell {
-                font-size: 4rem;
-            }
-
-            .reset-btn {
-                font-size: 1.4rem;
-                padding: 12px 24px;
-            }
-
-            .winner-message {
-                font-size: 1.4rem;
-            }
+            .game-container { padding: 40px; }
+            .player-turn { font-size: 2.2rem; }
+            .cell { font-size: 4rem; }
         }
     </style>
 </head>
@@ -230,25 +221,29 @@
     <div class="game-container">
         <div class="player-turn"><span id="currentPlayer">X</span>'s Turn</div>
         <div class="board" id="board"></div><br>
-        <button class="reset-btn" onclick="resetGame()">RESET</button>
+        <button class="reset-btn" onclick="resetGame()">RESET GAME</button>
     </div>
     
     <div class="credit">PLAY: <a href="https://tariqulislamrahat.github.io/xoxo/two-player/">MULTI PLAYER</a></div>
 
     <div id="winnerMessage" class="winner-message">
         <h2 id="winnerText"></h2>
+        <button class="reset-btn" onclick="resetGame()">PLAY AGAIN</button>
     </div>
 
     <script>
         const BOARD_SIZE = 9;
         const MAX_MOVES_PER_PLAYER = 3;
-        const MAX_DEPTH = 8;
+        const MAX_DEPTH = 12; 
+        
         let currentPlayer = 'x';
         let board = Array(BOARD_SIZE).fill(null);
         let xMoves = [];
         let oMoves = [];
         let gameOver = false;
         let isAnimating = false;
+        
+        let memo = new Map();
 
         const winPatterns = [
             [0, 1, 2], [3, 4, 5], [6, 7, 8],
@@ -274,17 +269,15 @@
             if (board[index]) return;
             const removed = placeMove(index);
             if (gameOver) return;
-            if (removed) {
-                setTimeout(aiMove, 1000);
-            } else {
-                aiMove();
-            }
+            const totalMoves = xMoves.length + oMoves.length;
+            const delay = removed ? 800 : (totalMoves < 2 ? 500 : 300);
+            setTimeout(aiMove, delay);
         }
 
         function placeMove(index) {
             board[index] = currentPlayer;
             const cell = document.querySelector(`[data-index="${index}"]`);
-            cell.classList.remove('x', 'o', 'removing');
+            cell.classList.remove('x', 'o', 'removing', 'will-remove');
             cell.textContent = currentPlayer.toUpperCase();
             cell.classList.add(currentPlayer);
 
@@ -293,9 +286,11 @@
             if (checkWinner(currentPlayer)) {
                 showWinner(currentPlayer);
                 gameOver = true;
+                return removed;
             }
 
             switchPlayer();
+            updateWillRemoveVisuals();
             return removed;
         }
 
@@ -313,16 +308,31 @@
                 board[oldestMove] = null;
                 setTimeout(() => {
                     oldestCell.textContent = '';
-                    oldestCell.classList.remove('x', 'o', 'removing');
+                    oldestCell.classList.remove('x', 'o', 'removing', 'will-remove');
+                    oldestCell.className = 'cell'; 
                     isAnimating = false;
-                }, 1000);
+                }, 500);
             }
             return removed;
         }
 
+        function updateWillRemoveVisuals() {
+            document.querySelectorAll('.will-remove').forEach(el => el.classList.remove('will-remove'));
+            if (xMoves.length === MAX_MOVES_PER_PLAYER) {
+                const nextToRemove = document.querySelector(`[data-index="${xMoves[0]}"]`);
+                if(nextToRemove) nextToRemove.classList.add('will-remove');
+            }
+            if (oMoves.length === MAX_MOVES_PER_PLAYER) {
+                const nextToRemove = document.querySelector(`[data-index="${oMoves[0]}"]`);
+                if(nextToRemove) nextToRemove.classList.add('will-remove');
+            }
+        }
+
         function switchPlayer() {
             currentPlayer = currentPlayer === 'x' ? 'o' : 'x';
-            document.getElementById('currentPlayer').textContent = currentPlayer.toUpperCase();
+            const cpLabel = document.getElementById('currentPlayer');
+            cpLabel.textContent = currentPlayer.toUpperCase();
+            cpLabel.style.color = currentPlayer === 'x' ? '#00d0ff' : '#ff002b';
         }
 
         function checkWinner(player) {
@@ -333,7 +343,8 @@
         function showWinner(player) {
             const winnerMessage = document.getElementById('winnerMessage');
             const winnerText = document.getElementById('winnerText');
-            winnerText.textContent = `Player ${player.toUpperCase()} Wins!`;
+            winnerText.textContent = `PLAYER ${player.toUpperCase()} WINS!`;
+            winnerText.style.color = player === 'x' ? '#00d0ff' : '#ff002b';
             winnerMessage.style.display = 'block';
             gameOver = true;
         }
@@ -345,31 +356,37 @@
             oMoves = [];
             gameOver = false;
             isAnimating = false;
-
+            memo.clear();
             document.getElementById('currentPlayer').textContent = 'X';
+            document.getElementById('currentPlayer').style.color = '#00d0ff';
             document.getElementById('winnerMessage').style.display = 'none';
             createBoard();
         }
 
         function aiMove() {
-            if (gameOver || isAnimating) {
-                if (isAnimating) setTimeout(aiMove, 100);
+            if (gameOver) return;
+            if (isAnimating) {
+                setTimeout(aiMove, 100);
+                return;
+            }
+            if (xMoves.length === 1 && oMoves.length === 0) {
+                const center = 4;
+                if (board[center] === null) placeMove(center);
+                else placeMove(0);
                 return;
             }
             const move = findBestMove();
-            const removed = placeMove(move);
-            if (removed && !gameOver) {
-            }
+            placeMove(move);
         }
 
         function findBestMove() {
             let bestScore = -Infinity;
-            let move;
-            const empties = getEmptyCells();
+            let move = -1;
+            const empties = getEmptyCells(xMoves, oMoves);
             for (let pos of empties) {
                 let newOM = [...oMoves, pos];
                 if (newOM.length > MAX_MOVES_PER_PLAYER) newOM.shift();
-                const score = minimax(xMoves, newOM, false, 1, -Infinity, Infinity);
+                const score = minimax(xMoves, newOM, false, 0, -Infinity, Infinity);
                 if (score > bestScore) {
                     bestScore = score;
                     move = pos;
@@ -378,15 +395,21 @@
             return move;
         }
 
-        function minimax(xM, oM, isMax, depth, alpha, beta) {
-            let score = evaluate(xM, oM);
-            if (score >= 10) return score - depth;
-            if (score <= -10) return score + depth;
-            if (depth >= MAX_DEPTH) return score;
+        function getStateKey(xM, oM, isMax) {
+            return `${xM.sort().join('')}|${oM.sort().join('')}|${isMax ? 'x' : 'o'}`;
+        }
 
+        function minimax(xM, oM, isMax, depth, alpha, beta) {
+            const stateKey = getStateKey(xM, oM, isMax);
+            if (memo.has(stateKey) && depth > 2) {
+                return memo.get(stateKey);
+            }
+            if (checkWinForMoves(oM)) return 1000 - depth;
+            if (checkWinForMoves(xM)) return -1000 + depth;
+            if (depth >= MAX_DEPTH) return evaluate(xM, oM);
             const empties = getEmpty(xM, oM);
             if (empties.length === 0) return 0;
-
+            let bestVal;
             if (isMax) {
                 let maxEval = -Infinity;
                 for (let pos of empties) {
@@ -397,7 +420,7 @@
                     alpha = Math.max(alpha, eval);
                     if (beta <= alpha) break;
                 }
-                return maxEval;
+                bestVal = maxEval;
             } else {
                 let minEval = Infinity;
                 for (let pos of empties) {
@@ -408,29 +431,10 @@
                     beta = Math.min(beta, eval);
                     if (beta <= alpha) break;
                 }
-                return minEval;
+                bestVal = minEval;
             }
-        }
-
-        function evaluate(xM, oM) {
-            if (checkWinForMoves(oM)) return 10;
-            if (checkWinForMoves(xM)) return -10;
-
-            let oScore = getPlayerScore(oM, xM);
-            let xScore = getPlayerScore(xM, oM);
-            return oScore - xScore;
-        }
-
-        function getPlayerScore(myMoves, oppMoves) {
-            let score = 0;
-            for (let pattern of winPatterns) {
-                let myCount = pattern.filter(i => myMoves.includes(i)).length;
-                let oppCount = pattern.filter(i => oppMoves.includes(i)).length;
-                if (myCount === 2 && oppCount === 0) score += 5;
-                if (myCount === 1 && oppCount === 0) score += 1;
-            }
-            if (myMoves.includes(4)) score += 2;
-            return score;
+            memo.set(stateKey, bestVal);
+            return bestVal;
         }
 
         function checkWinForMoves(moves) {
@@ -446,12 +450,26 @@
             return emp;
         }
 
-        function getEmptyCells() {
-            return getEmpty(xMoves, oMoves);
+        function getEmptyCells(currX, currO) {
+            return getEmpty(currX, currO);
+        }
+
+        function evaluate(xM, oM) {
+            let score = 0;
+            if (oM.includes(4)) score += 20;
+            if (xM.includes(4)) score -= 20;
+            for (let pattern of winPatterns) {
+                let oCount = pattern.filter(i => oM.includes(i)).length;
+                let xCount = pattern.filter(i => xM.includes(i)).length;
+                if (oCount === 2 && xCount === 0) score += 50; 
+                if (oCount === 1 && xCount === 0) score += 5;
+                if (xCount === 2 && oCount === 0) score -= 50;
+                if (xCount === 1 && oCount === 0) score -= 5;
+            }
+            return score;
         }
 
         createBoard();
     </script>
 </body>
 </html>
-
