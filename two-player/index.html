@@ -124,6 +124,10 @@
             opacity: 1;
         }
 
+        .cell.disabled {
+            pointer-events: none;
+        }
+
         .cell.x {
             color: #ffffff;
             background: rgba(255, 255, 255, 0.06);
@@ -180,6 +184,21 @@
             }
         }
 
+        .cell.win-highlight {
+            border-color: rgba(0, 255, 100, 0.8) !important;
+            box-shadow: 0 0 20px rgba(0, 255, 100, 0.3);
+            animation: winPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes winPulse {
+            0%, 100% {
+                box-shadow: 0 0 10px rgba(0, 255, 100, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 25px rgba(0, 255, 100, 0.5);
+            }
+        }
+
         .reset-btn {
             background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(10px);
@@ -204,6 +223,17 @@
 
         .reset-btn:active {
             transform: translateY(0);
+        }
+
+        .winner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
         }
 
         .winner-message {
@@ -316,6 +346,7 @@
     
     <div class="credit">PLAY: <a href="https://tariqulislamrahat.github.io/xoxo/single-player/">SINGLE PLAYER</a></div>
 
+    <div id="winnerOverlay" class="winner-overlay" onclick="resetGame()"></div>
     <div id="winnerMessage" class="winner-message">
         <h2 id="winnerText"></h2>
         <button class="reset-btn" onclick="resetGame()">Play Again</button>
@@ -328,6 +359,14 @@
         let board = Array(BOARD_SIZE).fill(null);
         let xMoves = [];
         let oMoves = [];
+        let gameOver = false;
+        let isAnimating = false;
+
+        const winPatterns = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
 
         function createBoard() {
             const boardElement = document.getElementById('board');
@@ -342,26 +381,45 @@
         }
 
         function handleCellClick(index) {
-            if (board[index] || checkWinner()) return;
+            if (board[index] || gameOver || isAnimating) return;
 
             board[index] = currentPlayer;
             const cell = document.querySelector(`[data-index="${index}"]`);
             cell.textContent = currentPlayer.toUpperCase();
             cell.classList.add(currentPlayer);
 
+            const needsRemoval = (currentPlayer === 'x' ? xMoves : oMoves).length >= MAX_MOVES_PER_PLAYER;
+
             trackPlayerMoves(index);
 
-            if (checkWinner()) {
-                showWinner();
-                return;
+            if (needsRemoval) {
+                // Wait for removal animation to finish before checking winner
+                isAnimating = true;
+                setBoardInteractive(false);
+                setTimeout(() => {
+                    isAnimating = false;
+                    if (checkWinner()) {
+                        highlightWinningPattern();
+                        showWinner();
+                        return;
+                    }
+                    switchPlayer();
+                    updateWillRemoveVisuals();
+                    setBoardInteractive(true);
+                }, 550);
+            } else {
+                if (checkWinner()) {
+                    highlightWinningPattern();
+                    showWinner();
+                    return;
+                }
+                switchPlayer();
+                updateWillRemoveVisuals();
             }
-
-            switchPlayer();
         }
 
         function trackPlayerMoves(index) {
             const movesArray = currentPlayer === 'x' ? xMoves : oMoves;
-
             movesArray.push(index);
 
             if (movesArray.length > MAX_MOVES_PER_PLAYER) {
@@ -376,19 +434,30 @@
                     oldestCell.classList.remove('x', 'o', 'removing', 'will-remove');
                 }, 500);
             }
-            
-            updateWillRemoveVisuals();
+        }
+
+        function setBoardInteractive(enabled) {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                if (enabled) {
+                    cell.classList.remove('disabled');
+                } else {
+                    cell.classList.add('disabled');
+                }
+            });
         }
 
         function updateWillRemoveVisuals() {
             document.querySelectorAll('.will-remove').forEach(el => el.classList.remove('will-remove'));
+            if (gameOver) return;
+
             if (xMoves.length === MAX_MOVES_PER_PLAYER) {
                 const nextToRemove = document.querySelector(`[data-index="${xMoves[0]}"]`);
-                if(nextToRemove) nextToRemove.classList.add('will-remove');
+                if (nextToRemove) nextToRemove.classList.add('will-remove');
             }
             if (oMoves.length === MAX_MOVES_PER_PLAYER) {
                 const nextToRemove = document.querySelector(`[data-index="${oMoves[0]}"]`);
-                if(nextToRemove) nextToRemove.classList.add('will-remove');
+                if (nextToRemove) nextToRemove.classList.add('will-remove');
             }
         }
 
@@ -398,28 +467,45 @@
         }
 
         function checkWinner() {
-            const winPatterns = [
-                [0, 1, 2], [3, 4, 5], [6, 7, 8],
-                [0, 3, 6], [1, 4, 7], [2, 5, 8],
-                [0, 4, 8], [2, 4, 6]
-            ];
-
             const movesArray = currentPlayer === 'x' ? xMoves : oMoves;
-
+            if (movesArray.length < 3) return false;
             return winPatterns.some(pattern => {
                 return pattern.every(index => movesArray.includes(index));
             });
         }
 
+        function getWinningPattern() {
+            const movesArray = currentPlayer === 'x' ? xMoves : oMoves;
+            return winPatterns.find(pattern => {
+                return pattern.every(index => movesArray.includes(index));
+            });
+        }
+
+        function highlightWinningPattern() {
+            const pattern = getWinningPattern();
+            if (!pattern) return;
+            for (let idx of pattern) {
+                const cell = document.querySelector(`[data-index="${idx}"]`);
+                if (cell) cell.classList.add('win-highlight');
+            }
+        }
+
         function showWinner() {
+            gameOver = true;
             const winnerMessage = document.getElementById('winnerMessage');
+            const winnerOverlay = document.getElementById('winnerOverlay');
             const winnerText = document.getElementById('winnerText');
-            winnerText.textContent = `Player ${currentPlayer.toUpperCase()} Wins!`;
+            winnerText.textContent = `Player ${currentPlayer.toUpperCase()} Wins! 🎉`;
             winnerText.style.background = 'linear-gradient(135deg, #ffffff 0%, #888888 100%)';
             winnerText.style.webkitBackgroundClip = 'text';
             winnerText.style.webkitTextFillColor = 'transparent';
             winnerText.style.backgroundClip = 'text';
-            winnerMessage.style.display = 'block';
+
+            // Delay popup so player can see the winning highlight
+            setTimeout(() => {
+                winnerMessage.style.display = 'block';
+                winnerOverlay.style.display = 'block';
+            }, 800);
         }
 
         function resetGame() {
@@ -427,9 +513,12 @@
             currentPlayer = 'x';
             xMoves = [];
             oMoves = [];
+            gameOver = false;
+            isAnimating = false;
 
             document.getElementById('currentPlayer').textContent = 'X';
             document.getElementById('winnerMessage').style.display = 'none';
+            document.getElementById('winnerOverlay').style.display = 'none';
             createBoard();
         }
 
