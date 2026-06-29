@@ -268,17 +268,26 @@
         <button class="reset-btn" onclick="resetGame()">Play Again</button>
     </div>
 
-    <script>
+   <script>
         const BOARD_SIZE = 9;
         const MAX_MOVES_PER_PLAYER = 3;
-        const MAX_DEPTH = 10;
-        let currentPlayer = 'x';
+        const REPEAT_DRAW_LIMIT = 3;
+        const HUMAN_PLAYER = 'x';
+        const AI_PLAYER = 'o';
+        const OUTCOME_AI_WIN = 1;
+        const OUTCOME_DRAW = 0;
+        const OUTCOME_AI_LOSS = -1;
+
+        let currentPlayer = HUMAN_PLAYER;
         let board = Array(BOARD_SIZE).fill(null);
         let xMoves = [];
         let oMoves = [];
         let gameOver = false;
         let isAnimating = false;
         let moveCount = 0;
+        let stateHistory = new Map();
+        let perfectSolver = null;
+        let aiTimer = null;
 
         const winPatterns = [
             [0, 1, 2], [3, 4, 5], [6, 7, 8],
@@ -286,163 +295,195 @@
             [0, 4, 8], [2, 4, 6]
         ];
 
-        // Positional weights: center > corners > edges
         const POSITION_WEIGHTS = [3, 2, 3, 2, 5, 2, 3, 2, 3];
 
         function createBoard() {
             const boardElement = document.getElementById('board');
             boardElement.innerHTML = '';
+
             for (let i = 0; i < BOARD_SIZE; i++) {
-                const cell = document.createElement('div');
-                cell.classList.add('cell');
-                cell.setAttribute('data-index', i);
+                const cell = document.createElement('button');
+                cell.type = 'button';
+                cell.className = 'cell';
+                cell.dataset.index = String(i);
+                cell.setAttribute('role', 'gridcell');
+                cell.setAttribute('aria-label', `Cell ${i + 1}`);
                 cell.addEventListener('click', handleCellClick);
                 boardElement.appendChild(cell);
             }
         }
 
         function handleCellClick(event) {
-            if (currentPlayer !== 'x' || gameOver || isAnimating) return;
-            const index = parseInt(event.target.getAttribute('data-index'));
+            if (currentPlayer !== HUMAN_PLAYER || gameOver || isAnimating) return;
+
+            const index = Number(event.currentTarget.dataset.index);
             if (board[index]) return;
 
             const removed = placeMove(index);
             if (gameOver) return;
 
-            if (removed) {
-                setTimeout(aiMove, 700);
-            } else {
-                setTimeout(aiMove, 300);
-            }
+            clearTimeout(aiTimer);
+            aiTimer = setTimeout(aiMove, removed ? 700 : 260);
         }
 
         function placeMove(index) {
-            board[index] = currentPlayer;
-            const cell = document.querySelector(`[data-index="${index}"]`);
-            cell.classList.remove('x', 'o', 'removing', 'will-remove');
-            cell.textContent = currentPlayer.toUpperCase();
-            cell.classList.add(currentPlayer);
+            if (gameOver || board[index]) return false;
 
-            const removed = trackPlayerMoves(index);
+            const player = currentPlayer;
+            board[index] = player;
+            renderPlacedMark(index, player);
+
+            const removed = trackPlayerMoves(player, index);
             moveCount++;
 
-            if (checkWinForMoves(currentPlayer === 'x' ? xMoves : oMoves)) {
-                showWinner(currentPlayer);
-                gameOver = true;
-            } else if (moveCount > 30 && isDrawState()) {
-                showDraw();
-                gameOver = true;
+            if (checkWinForMoves(getMovesForPlayer(player))) {
+                showWinner(player);
+                updateWillRemoveVisuals();
+                return removed;
             }
 
             switchPlayer();
-            updateWillRemoveVisuals();
+
+            if (moveCount > BOARD_SIZE && recordState() >= REPEAT_DRAW_LIMIT) {
+                showDraw();
+            } else {
+                updateWillRemoveVisuals();
+            }
+
             return removed;
         }
 
-        function trackPlayerMoves(index) {
-            const movesArray = currentPlayer === 'x' ? xMoves : oMoves;
-            movesArray.push(index);
-            let removed = false;
+        function renderPlacedMark(index, player) {
+            const cell = getCell(index);
+            if (!cell) return;
 
-            if (movesArray.length > MAX_MOVES_PER_PLAYER) {
-                removed = true;
-                isAnimating = true;
-                const oldestMove = movesArray.shift();
-                const oldestCell = document.querySelector(`[data-index="${oldestMove}"]`);
+            cell.classList.remove('x', 'o', 'removing', 'will-remove');
+            cell.textContent = player.toUpperCase();
+            cell.classList.add(player);
+            cell.setAttribute('aria-label', `Cell ${index + 1}: ${player.toUpperCase()}`);
+        }
+
+        function trackPlayerMoves(player, index) {
+            const movesArray = getMovesForPlayer(player);
+            movesArray.push(index);
+
+            if (movesArray.length <= MAX_MOVES_PER_PLAYER) return false;
+
+            isAnimating = true;
+            const oldestMove = movesArray.shift();
+            const oldestCell = getCell(oldestMove);
+            board[oldestMove] = null;
+
+            if (oldestCell) {
                 oldestCell.classList.add('removing');
-                board[oldestMove] = null;
                 setTimeout(() => {
                     oldestCell.textContent = '';
-                    oldestCell.classList.remove('x', 'o', 'removing', 'will-remove');
+                    oldestCell.className = 'cell';
+                    oldestCell.setAttribute('aria-label', `Cell ${oldestMove + 1}`);
                     isAnimating = false;
-                }, 600);
+                    updateWillRemoveVisuals();
+                }, 520);
+            } else {
+                isAnimating = false;
             }
-            return removed;
+
+            return true;
         }
 
         function updateWillRemoveVisuals() {
-            document.querySelectorAll('.will-remove').forEach(el => el.classList.remove('will-remove'));
+            document.querySelectorAll('.will-remove').forEach(cell => cell.classList.remove('will-remove'));
             if (gameOver) return;
 
             if (xMoves.length === MAX_MOVES_PER_PLAYER) {
-                const nextToRemove = document.querySelector(`[data-index="${xMoves[0]}"]`);
-                if (nextToRemove) nextToRemove.classList.add('will-remove');
+                getCell(xMoves[0])?.classList.add('will-remove');
             }
+
             if (oMoves.length === MAX_MOVES_PER_PLAYER) {
-                const nextToRemove = document.querySelector(`[data-index="${oMoves[0]}"]`);
-                if (nextToRemove) nextToRemove.classList.add('will-remove');
+                getCell(oMoves[0])?.classList.add('will-remove');
             }
         }
 
         function switchPlayer() {
-            currentPlayer = currentPlayer === 'x' ? 'o' : 'x';
+            currentPlayer = currentPlayer === HUMAN_PLAYER ? AI_PLAYER : HUMAN_PLAYER;
             document.getElementById('currentPlayer').textContent = currentPlayer.toUpperCase();
         }
 
         function checkWinForMoves(moves) {
-            if (moves.length < 3) return false;
+            if (moves.length < MAX_MOVES_PER_PLAYER) return false;
             return winPatterns.some(pattern => pattern.every(index => moves.includes(index)));
         }
 
         function showWinner(player) {
-            const winnerMessage = document.getElementById('winnerMessage');
-            const winnerOverlay = document.getElementById('winnerOverlay');
-            const winnerText = document.getElementById('winnerText');
-            winnerText.textContent = player === 'x' ? 'You Win! 🎉' : 'AI Wins! 🤖';
-            winnerMessage.style.display = 'block';
-            winnerOverlay.style.display = 'block';
-            gameOver = true;
+            showEndMessage(player === HUMAN_PLAYER ? 'You Win!' : 'AI Wins!');
         }
 
         function showDraw() {
-            const winnerMessage = document.getElementById('winnerMessage');
-            const winnerOverlay = document.getElementById('winnerOverlay');
-            const winnerText = document.getElementById('winnerText');
-            winnerText.textContent = "It's a Draw! 🤝";
-            winnerMessage.style.display = 'block';
-            winnerOverlay.style.display = 'block';
+            showEndMessage("It's a Draw!");
+        }
+
+        function showEndMessage(message) {
+            clearTimeout(aiTimer);
             gameOver = true;
+            document.getElementById('winnerText').textContent = message;
+            document.getElementById('winnerMessage').style.display = 'block';
+            document.getElementById('winnerOverlay').style.display = 'block';
         }
 
-        // Detect repeated board states indicating a draw
-        let stateHistory = [];
-        function isDrawState() {
-            const stateKey = getBoardStateKey(xMoves, oMoves);
-            const occurrences = stateHistory.filter(s => s === stateKey).length;
-            return occurrences >= 3;
+        function getMovesForPlayer(player) {
+            return player === HUMAN_PLAYER ? xMoves : oMoves;
         }
 
-        function getBoardStateKey(xM, oM) {
-            return [...xM].sort().join(',') + '|' + [...oM].sort().join(',');
+        function getCell(index) {
+            return document.querySelector(`[data-index="${index}"]`);
+        }
+
+        function getStateKey(xM, oM, turn) {
+            return `${xM.join(',')}|${oM.join(',')}|${turn}`;
+        }
+
+        function stateKey(state) {
+            return getStateKey(state.x, state.o, state.turn);
+        }
+
+        function recordState() {
+            const key = getStateKey(xMoves, oMoves, currentPlayer);
+            const nextCount = (stateHistory.get(key) || 0) + 1;
+            stateHistory.set(key, nextCount);
+            return nextCount;
         }
 
         function resetGame() {
+            clearTimeout(aiTimer);
             board = Array(BOARD_SIZE).fill(null);
-            currentPlayer = 'x';
+            currentPlayer = HUMAN_PLAYER;
             xMoves = [];
             oMoves = [];
             gameOver = false;
             isAnimating = false;
             moveCount = 0;
-            stateHistory = [];
+            stateHistory = new Map();
 
             document.getElementById('currentPlayer').textContent = 'X';
             document.getElementById('winnerMessage').style.display = 'none';
             document.getElementById('winnerOverlay').style.display = 'none';
             createBoard();
+            recordState();
+            updateWillRemoveVisuals();
         }
 
-        // =============================================
-        //  IMPROVED AI: Minimax + Alpha-Beta Pruning
-        //  with removal-aware heuristics, fork detection,
-        //  blocking, and cycle detection
-        // =============================================
-
+        // Perfect AI for the disappearing-piece game.
+        // It solves the complete reachable state graph once, then uses that
+        // game-theory table to choose the best move from the current state.
         function aiMove() {
-            if (gameOver || isAnimating) {
-                if (isAnimating) setTimeout(aiMove, 100);
+            if (gameOver) return;
+
+            if (isAnimating) {
+                aiTimer = setTimeout(aiMove, 80);
                 return;
             }
+
+            if (currentPlayer !== AI_PLAYER) return;
+
             const move = findBestMove();
             if (move !== undefined) {
                 placeMove(move);
@@ -450,201 +491,281 @@
         }
 
         function findBestMove() {
-            let bestScore = -Infinity;
-            let bestMove;
-            const empties = getEmpty(xMoves, oMoves);
+            const legalMoves = getEmptyFromMoves(xMoves, oMoves);
+            if (legalMoves.length === 0) return undefined;
 
-            // Try immediate winning move first (optimization)
-            for (let pos of empties) {
-                let simOM = [...oMoves, pos];
-                if (simOM.length > MAX_MOVES_PER_PLAYER) simOM.shift();
-                if (checkWinForMoves(simOM)) return pos;
-            }
+            const solver = getPerfectSolver();
+            const state = { x: [...xMoves], o: [...oMoves], turn: AI_PLAYER };
 
-            // Then block opponent's immediate winning move
-            for (let pos of empties) {
-                let simXM = [...xMoves, pos];
-                if (simXM.length > MAX_MOVES_PER_PLAYER) simXM.shift();
-                if (checkWinForMoves(simXM)) return pos;
-            }
+            const options = legalMoves.map(pos => {
+                const nextState = applyStateMove(state, pos);
+                const node = solver.nodes.get(stateKey(nextState));
 
-            // Full minimax search
-            const visited = new Set();
-            for (let pos of empties) {
-                let simOM = [...oMoves, pos];
-                if (simOM.length > MAX_MOVES_PER_PLAYER) simOM.shift();
-                const score = minimax([...xMoves], simOM, false, 0, -Infinity, Infinity, visited);
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMove = pos;
-                }
-            }
-            return bestMove;
+                return {
+                    pos,
+                    outcome: node ? node.value : evaluateEmergencyState(nextState),
+                    depth: node ? node.depth : Infinity,
+                    tieScore: scoreMoveShape(nextState, pos)
+                };
+            });
+
+            options.sort(compareAiOptions);
+            return options[0].pos;
         }
 
-        function minimax(xM, oM, isMaximizing, depth, alpha, beta, visited) {
-            // Terminal checks
-            if (checkWinForMoves(oM)) return 1000 - depth;
-            if (checkWinForMoves(xM)) return -1000 + depth;
-            if (depth >= MAX_DEPTH) return evaluate(xM, oM);
-
-            // Cycle detection
-            const stateKey = getBoardStateKey(xM, oM) + (isMaximizing ? ':max' : ':min');
-            if (visited.has(stateKey)) return 0; // Draw by repetition
-            visited.add(stateKey);
-
-            const empties = getEmpty(xM, oM);
-
-            if (isMaximizing) {
-                // AI (O) is maximizing
-                let maxScore = -Infinity;
-                for (let pos of empties) {
-                    let newOM = [...oM, pos];
-                    if (newOM.length > MAX_MOVES_PER_PLAYER) newOM.shift();
-                    let score = minimax([...xM], newOM, false, depth + 1, alpha, beta, visited);
-                    maxScore = Math.max(maxScore, score);
-                    alpha = Math.max(alpha, score);
-                    if (beta <= alpha) break;
-                }
-                visited.delete(stateKey);
-                return maxScore;
-            } else {
-                // Player (X) is minimizing
-                let minScore = Infinity;
-                for (let pos of empties) {
-                    let newXM = [...xM, pos];
-                    if (newXM.length > MAX_MOVES_PER_PLAYER) newXM.shift();
-                    let score = minimax(newXM, [...oM], true, depth + 1, alpha, beta, visited);
-                    minScore = Math.min(minScore, score);
-                    beta = Math.min(beta, score);
-                    if (beta <= alpha) break;
-                }
-                visited.delete(stateKey);
-                return minScore;
+        function getPerfectSolver() {
+            if (!perfectSolver) {
+                perfectSolver = buildPerfectSolver();
             }
+            return perfectSolver;
         }
 
-        function evaluate(xM, oM) {
-            // Check for wins first (shouldn't reach here normally, but safety)
-            if (checkWinForMoves(oM)) return 1000;
-            if (checkWinForMoves(xM)) return -1000;
+        function buildPerfectSolver() {
+            const nodes = new Map();
+            const queue = [];
+            const startState = { x: [], o: [], turn: HUMAN_PLAYER };
+            const startNode = createSolverNode(startState);
 
-            let score = 0;
+            nodes.set(startNode.key, startNode);
+            queue.push(startNode);
 
-            // 1. Line-based scoring
-            score += evaluateLines(oM, xM); // AI advantage
-            score -= evaluateLines(xM, oM); // Player advantage
+            for (let cursor = 0; cursor < queue.length; cursor++) {
+                const node = queue[cursor];
+                if (getWinner(node.state)) continue;
 
-            // 2. Positional scoring
-            score += getPositionalScore(oM) * 0.5;
-            score -= getPositionalScore(xM) * 0.5;
+                for (const pos of getEmptyFromMoves(node.state.x, node.state.o)) {
+                    const nextState = applyStateMove(node.state, pos);
+                    const nextKey = stateKey(nextState);
+                    let nextNode = nodes.get(nextKey);
 
-            // 3. Fork detection (multiple threats)
-            score += countThreats(oM, xM) * 15;
-            score -= countThreats(xM, oM) * 15;
+                    if (!nextNode) {
+                        nextNode = createSolverNode(nextState);
+                        nodes.set(nextKey, nextNode);
+                        queue.push(nextNode);
+                    }
 
-            // 4. Removal awareness — penalize if a key piece is about to be removed
-            score += getRemovalPenalty(oM, xM);
-            score -= getRemovalPenalty(xM, oM);
-
-            return score;
-        }
-
-        function evaluateLines(myMoves, oppMoves) {
-            let score = 0;
-            for (let pattern of winPatterns) {
-                let myCount = 0;
-                let oppCount = 0;
-                for (let idx of pattern) {
-                    if (myMoves.includes(idx)) myCount++;
-                    if (oppMoves.includes(idx)) oppCount++;
-                }
-
-                if (oppCount === 0) {
-                    // Unblocked line
-                    if (myCount === 3) score += 100;
-                    else if (myCount === 2) score += 10;
-                    else if (myCount === 1) score += 2;
-                } else if (myCount === 0) {
-                    // Opponent's line — we should value blocking
-                    if (oppCount === 2) score -= 3; // Incentive to block
+                    node.successors.push(nextKey);
+                    nextNode.predecessors.push(node.key);
                 }
             }
-            return score;
+
+            const retroQueue = [];
+
+            for (const node of nodes.values()) {
+                node.degree = node.successors.length;
+
+                const winner = getWinner(node.state);
+                if (winner === AI_PLAYER) {
+                    node.value = OUTCOME_AI_WIN;
+                    node.depth = 0;
+                    retroQueue.push(node);
+                } else if (winner === HUMAN_PLAYER) {
+                    node.value = OUTCOME_AI_LOSS;
+                    node.depth = 0;
+                    retroQueue.push(node);
+                }
+            }
+
+            for (let cursor = 0; cursor < retroQueue.length; cursor++) {
+                const solved = retroQueue[cursor];
+
+                for (const predecessorKey of solved.predecessors) {
+                    const predecessor = nodes.get(predecessorKey);
+                    if (predecessor.value !== null) continue;
+
+                    const isAiTurn = predecessor.state.turn === AI_PLAYER;
+                    const moverCanChooseSolvedResult =
+                        (isAiTurn && solved.value === OUTCOME_AI_WIN) ||
+                        (!isAiTurn && solved.value === OUTCOME_AI_LOSS);
+
+                    if (moverCanChooseSolvedResult) {
+                        predecessor.value = solved.value;
+                        predecessor.depth = solved.depth + 1;
+                        retroQueue.push(predecessor);
+                        continue;
+                    }
+
+                    predecessor.degree--;
+                    if (predecessor.degree === 0) {
+                        predecessor.value = isAiTurn ? OUTCOME_AI_LOSS : OUTCOME_AI_WIN;
+                        predecessor.depth = 1 + Math.max(...predecessor.successors.map(key => nodes.get(key).depth || 0));
+                        retroQueue.push(predecessor);
+                    }
+                }
+            }
+
+            for (const node of nodes.values()) {
+                if (node.value === null) {
+                    node.value = OUTCOME_DRAW;
+                    node.depth = Infinity;
+                }
+            }
+
+            return { nodes };
         }
 
-        function getPositionalScore(moves) {
-            let score = 0;
-            for (let m of moves) {
-                score += POSITION_WEIGHTS[m];
+        function createSolverNode(state) {
+            return {
+                state,
+                key: stateKey(state),
+                successors: [],
+                predecessors: [],
+                value: null,
+                depth: null,
+                degree: 0
+            };
+        }
+
+        function applyStateMove(state, pos) {
+            const nextState = {
+                x: [...state.x],
+                o: [...state.o],
+                turn: state.turn === HUMAN_PLAYER ? AI_PLAYER : HUMAN_PLAYER
+            };
+            const moves = state.turn === HUMAN_PLAYER ? nextState.x : nextState.o;
+
+            moves.push(pos);
+            if (moves.length > MAX_MOVES_PER_PLAYER) {
+                moves.shift();
             }
+
+            return nextState;
+        }
+
+        function getWinner(state) {
+            const xWins = checkWinForMoves(state.x);
+            const oWins = checkWinForMoves(state.o);
+
+            if (xWins && oWins) {
+                return state.turn === HUMAN_PLAYER ? AI_PLAYER : HUMAN_PLAYER;
+            }
+
+            if (xWins) return HUMAN_PLAYER;
+            if (oWins) return AI_PLAYER;
+            return null;
+        }
+
+        function getEmptyFromMoves(xM, oM) {
+            const occupied = new Set([...xM, ...oM]);
+            const empty = [];
+
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                if (!occupied.has(i)) empty.push(i);
+            }
+
+            return empty;
+        }
+
+        function compareAiOptions(a, b) {
+            if (a.outcome !== b.outcome) {
+                return b.outcome - a.outcome;
+            }
+
+            if (a.outcome === OUTCOME_AI_WIN && a.depth !== b.depth) {
+                return a.depth - b.depth;
+            }
+
+            if (a.outcome === OUTCOME_AI_LOSS && a.depth !== b.depth) {
+                return b.depth - a.depth;
+            }
+
+            if (a.tieScore !== b.tieScore) {
+                return b.tieScore - a.tieScore;
+            }
+
+            return a.pos - b.pos;
+        }
+
+        function evaluateEmergencyState(state) {
+            const winner = getWinner(state);
+            if (winner === AI_PLAYER) return OUTCOME_AI_WIN;
+            if (winner === HUMAN_PLAYER) return OUTCOME_AI_LOSS;
+            return OUTCOME_DRAW;
+        }
+
+        function scoreMoveShape(state, pos) {
+            let score = POSITION_WEIGHTS[pos];
+
+            score += countThreats(state.o, state.x) * 6;
+            score -= countThreats(state.x, state.o) * 7;
+            score += getLinePressure(state.o, state.x);
+            score -= getLinePressure(state.x, state.o);
+            score += getRemovalShapeScore(state.o, state.x);
+            score -= getRemovalShapeScore(state.x, state.o);
+
             return score;
         }
 
         function countThreats(myMoves, oppMoves) {
             let threats = 0;
-            for (let pattern of winPatterns) {
-                let myCount = 0;
-                let oppCount = 0;
-                for (let idx of pattern) {
-                    if (myMoves.includes(idx)) myCount++;
-                    if (oppMoves.includes(idx)) oppCount++;
-                }
+
+            for (const pattern of winPatterns) {
+                const myCount = countMovesInPattern(myMoves, pattern);
+                const oppCount = countMovesInPattern(oppMoves, pattern);
                 if (myCount === 2 && oppCount === 0) threats++;
             }
+
             return threats;
         }
 
-        function getRemovalPenalty(myMoves, oppMoves) {
+        function getLinePressure(myMoves, oppMoves) {
+            let score = 0;
+
+            for (const pattern of winPatterns) {
+                const myCount = countMovesInPattern(myMoves, pattern);
+                const oppCount = countMovesInPattern(oppMoves, pattern);
+
+                if (oppCount === 0) {
+                    score += myCount * myCount;
+                }
+            }
+
+            return score;
+        }
+
+        function getRemovalShapeScore(myMoves, oppMoves) {
             if (myMoves.length < MAX_MOVES_PER_PLAYER) return 0;
 
-            // The oldest move (index 0) will be removed next
             const willRemove = myMoves[0];
-            let penalty = 0;
+            let score = 0;
 
-            // Check if the piece about to be removed is part of a valuable pattern
-            for (let pattern of winPatterns) {
+            for (const pattern of winPatterns) {
                 if (!pattern.includes(willRemove)) continue;
-                let myCount = 0;
-                let oppCount = 0;
-                for (let idx of pattern) {
-                    if (myMoves.includes(idx)) myCount++;
-                    if (oppMoves.includes(idx)) oppCount++;
+
+                const myCount = countMovesInPattern(myMoves, pattern);
+                const oppCount = countMovesInPattern(oppMoves, pattern);
+
+                if (myCount === 2 && oppCount === 0) score -= 4;
+                if (myCount === 3 && oppCount === 0) score -= 10;
+            }
+
+            if (willRemove === 4) score -= 2;
+            if ([0, 2, 6, 8].includes(willRemove)) score -= 1;
+
+            return score;
+        }
+
+        function countMovesInPattern(moves, pattern) {
+            let count = 0;
+
+            for (const index of pattern) {
+                if (moves.includes(index)) count++;
+            }
+
+            return count;
+        }
+
+        function warmSolver() {
+            setTimeout(() => {
+                if (!perfectSolver) {
+                    perfectSolver = buildPerfectSolver();
                 }
-                // If removing this piece breaks a strong line
-                if (myCount === 2 && oppCount === 0) penalty -= 8;
-                if (myCount === 3 && oppCount === 0) penalty -= 20;
-            }
-
-            // Penalty for losing a center piece
-            if (willRemove === 4) penalty -= 4;
-            // Penalty for losing a corner
-            if ([0, 2, 6, 8].includes(willRemove)) penalty -= 2;
-
-            return penalty;
+            }, 0);
         }
-
-        function getEmpty(xM, oM) {
-            const occupied = new Set([...xM, ...oM]);
-            let emp = [];
-            for (let i = 0; i < BOARD_SIZE; i++) {
-                if (!occupied.has(i)) emp.push(i);
-            }
-            return emp;
-        }
-
-        // Track states for draw detection
-        function recordState() {
-            stateHistory.push(getBoardStateKey(xMoves, oMoves));
-        }
-
-        // Wrap placeMove to also record state
-        const originalPlaceMove = placeMove;
-        // Instead, we record state inside the placeMove flow via a hook after move completes
-
-        const origHandleCellClick = handleCellClick;
 
         createBoard();
+        recordState();
+        warmSolver();
     </script>
 </body>
 </html>
